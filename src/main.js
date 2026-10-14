@@ -10,8 +10,8 @@ const $=s=>document.querySelector(s);
 let storage;try{storage=window.localStorage;}catch{storage={getItem:()=>null,setItem:()=>{throw Error('unavailable');}};}
 const qaMode=import.meta.env.DEV&&new URLSearchParams(location.search).has('qa');
 if(qaMode){const originalStorage=storage;storage={getItem:k=>originalStorage.getItem('floraverse.qa.'+k),setItem:(k,v)=>originalStorage.setItem('floraverse.qa.'+k,v)};}
-let progress=loadProgress(storage),settings={quality:'balanced',volume:.25,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches,sound:false};
-try{const s=JSON.parse(storage.getItem('floraverse.settings'));if(['low','balanced','high'].includes(s?.quality))settings.quality=s.quality;if(Number.isFinite(s?.volume))settings.volume=Math.max(0,Math.min(1,s.volume));if(typeof s?.reduced==='boolean')settings.reduced=s.reduced;}catch{}
+let progress=loadProgress(storage),settings={quality:'balanced',volume:.25,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches,sound:true,audioVersion:2};
+try{const s=JSON.parse(storage.getItem('floraverse.settings'));if(['low','balanced','high'].includes(s?.quality))settings.quality=s.quality;if(Number.isFinite(s?.volume))settings.volume=Math.max(0,Math.min(1,s.volume));if(typeof s?.reduced==='boolean')settings.reduced=s.reduced;if(s?.audioVersion===2&&typeof s.sound==='boolean')settings.sound=s.sound;}catch{}
 const forestAudio=new ForestAudio();
 let disposeBench=null;
 let world=null,mode='menu',busy=false,scan=false,drag=false,held=0,nearest=null,lastTarget='',time=0,last=performance.now(),lastHud=0,frames=0,fps=0,fpsTimer=0,filmDone=null;
@@ -21,7 +21,8 @@ $('#stars').innerHTML=Array.from({length:32},(_,i)=>`<i style="--x:${(i*37)%100}
 function clearInput(){keys.clear();scan=false;drag=false;held=0;$('#scan-overlay').hidden=true;}
 function toast(text){$('#toast').textContent=text;$('#toast').hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('#toast').hidden=true,4800);}
 function persist(){if(world)progress.position=[world.player.position.x,world.player.position.z];if(!saveProgress(storage,progress))toast('此瀏覽器無法保存進度；本次旅程仍可繼續。');updateMenu();}
-function updateMenu(){const n=progressPercent(progress);$('#journey').innerHTML=(n>0?'繼續旅程':'開始旅程')+' <span>↗</span>';renderChapters();}
+function hasJourney(){return progress.position!==null||progress.scanned.length>0||progress.evidence;}
+function updateMenu(){const n=progressPercent(progress);$('#journey').innerHTML=(hasJourney()?'繼續旅程':'開始旅程')+' <span>↗</span>';renderChapters();}
 function renderChapters(){
   $('#chapter-grid').innerHTML=chapters.map((c,i)=>{
     const unlocked=i===1||(i===2&&canUnlock(progress));
@@ -34,14 +35,16 @@ function closeDialog(){disposeBench?.();disposeBench=null;$('#dialog').classList
 function showHome(){mode='menu';clearInput();closeDialog();$('#menu').hidden=false;$('#hud').hidden=true;$('#cinematic').hidden=true;$('#loading').hidden=true;$('#home').hidden=false;$('#chapter-view').hidden=true;$('#webgl-canvas').classList.remove('active');updateMenu();$('#journey').focus();}
 function openDialog(kicker,html){disposeBench?.();disposeBench=null;clearInput();$('#dialog-kicker').textContent=kicker;$('#dialog-content').innerHTML=html;$('#dialog').showModal();}
 $('#dialog-close').onclick=closeDialog;$('#dialog').addEventListener('cancel',e=>{e.preventDefault();closeDialog();});
-function help(){openDialog('HOW TO EXPLORE',`<h2>慢慢走，森林會等你。</h2><p>WASD 移動，左鍵拖曳可上下左右轉動視角，滾輪拉近拉遠。角色會沿可行走地面前進，水池與陡坡無法通行。</p><ul class="help-list"><li><kbd>右鍵</kbd> 按住開啟生態透視鏡。</li><li><kbd>E</kbd> 接近池岸樣本、閘石、土壤或植物，按一次即可互動。近景可點選或拖放，Esc 返回探索。</li><li><kbd>Esc</kbd> 暫停、返回主畫面或重新定位。</li><li><kbd>H</kbd> 隨時查看操作說明。</li></ul><p class="muted">跟隨方向提示尋找當前任務。自由探索、不計時、不扣分；解謎可撤銷、查看提示與重新嘗試。這個版本使用鍵鼠模擬儀式，無需攝影機。</p><button id="help-ok" class="primary wide">準備好了 →</button>`);$('#help-ok').onclick=closeDialog;}
+function help(){openDialog('HOW TO EXPLORE',`<h2>慢慢走，森林會等你。</h2><p>WASD 移動，左鍵拖曳可上下左右轉動視角，滾輪拉近拉遠。角色會沿可行走地面前進，水池與陡坡無法通行。</p><ul class="help-list"><li><kbd>右鍵</kbd> 按住開啟生態透視鏡。</li><li><kbd>E</kbd> 接近池岸樣本、閘石、土壤或植物，按一次即可互動。近景可點選或拖放，Esc 返回探索。</li><li><kbd>Esc</kbd> 暫停、返回主畫面或重新定位。</li><li><kbd>H</kbd> 隨時查看操作說明。</li></ul><p class="muted">沿地上的金色微光找到場景中的樣本瓶、石閘、垃圾或枯萎植物；靠近會出現 E 提示。環境與互動音預設開啟，可用右上角音效按鈕關閉。自由探索、不計時、不扣分；解謎可撤銷、查看提示與重新嘗試。這個版本使用鍵鼠模擬儀式，無需攝影機。</p><button id="help-ok" class="primary wide">準備好了 →</button>`);$('#help-ok').onclick=closeDialog;}
 async function setSound(value){
  settings.sound=await forestAudio.set(value,settings.volume);
  if(value&&!settings.sound)toast('此裝置暫時無法播放環境音。');
+ $('#hud-sound').textContent=settings.sound?'♪ 音效已開啟':'♪ 音效關閉 · 點此開啟';$('#hud-sound').setAttribute('aria-pressed',String(settings.sound));try{storage.setItem('floraverse.settings',JSON.stringify(settings));}catch{}
  $('#sound-toggle').classList.toggle('on',settings.sound);$('#sound-toggle').setAttribute('aria-label',settings.sound?'關閉環境音':'開啟環境音');
 }
 function saveSettings(){try{storage.setItem('floraverse.settings',JSON.stringify(settings));}catch{}document.body.classList.toggle('reduced-motion',settings.reduced);world?.setQuality(settings.quality);setSound(settings.sound);}
-function showSettings(){openDialog('SETTINGS',`<h2>找到舒服的節奏</h2><label class="setting-row">畫質<select id="quality"><option value="low">流暢 · 降低解析度</option><option value="balanced">均衡 · 建議</option><option value="high">精緻 · 加入柔光</option></select></label><p class="muted">若畫面不順，先選「流暢」。精緻模式啟用 Bloom，會增加顯示卡負擔。</p><label class="setting-row">環境音<input type="checkbox" id="sound-check"></label><label class="setting-row">音量<input id="volume" type="range" min="0" max="1" step=".05"></label><label class="setting-row">減少動態效果<input type="checkbox" id="reduced-check"></label><button class="primary wide" id="settings-ok">儲存設定</button>`);
+function showSettings(){openDialog('SETTINGS',`<h2>找到舒服的節奏</h2><label class="setting-row">畫質<select id="quality"><option value="low">流暢 · 降低解析度</option><option value="balanced">均衡 · 建議</option><option value="high">精緻 · 加入柔光</option></select></label><p class="muted">若畫面不順，先選「流暢」。精緻模式啟用 Bloom，會增加顯示卡負擔。</p><label class="setting-row">環境音<input type="checkbox" id="sound-check"></label><label class="setting-row">音量<input id="volume" type="range" min="0" max="1" step=".05"></label><label class="setting-row">減少動態效果<input type="checkbox" id="reduced-check"></label><button class="glass wide" id="test-sound">試聽水聲</button><p id="sound-status" role="status"></p><button class="primary wide" id="settings-ok">儲存設定</button>`);
+  $('#test-sound').onclick=async()=>{const ok=await forestAudio.set(true,Number($('#volume').value));if(ok){settings.sound=true;$('#sound-check').checked=true;forestAudio.play('water');$('#sound-status').textContent='已播放試聽水聲，可用音量滑桿調整。';}else $('#sound-status').textContent='瀏覽器未能啟動聲音，請確認分頁沒有被靜音。';};
   $('#quality').value=settings.quality;$('#volume').value=settings.volume;$('#reduced-check').checked=settings.reduced;$('#sound-check').checked=settings.sound;
   $('#settings-ok').onclick=()=>{settings.quality=$('#quality').value;settings.volume=Number($('#volume').value);settings.reduced=$('#reduced-check').checked;settings.sound=$('#sound-check').checked;saveSettings();closeDialog();};
 }
@@ -55,11 +58,11 @@ async function ensureWorld(){
   try{const {createWorld}=await import('./world.js');world=await createWorld($('#webgl-canvas'),settings,t=>$('#loading-text').textContent=t);$('#loading').hidden=true;return true;}
   catch(error){console.error(error);$('#loading-text').textContent='森林載入失敗。請確認網路、模型檔案與 WebGL 可用，再重新進入。';$('#loading-back').hidden=false;return false;}
 }
-async function startJourney(){if(busy)return;busy=true;$('#menu').hidden=true;const ok=await ensureWorld();busy=false;if(!ok)return;
+async function startJourney(){if(busy)return;busy=true;await setSound(settings.sound);$('#menu').hidden=true;const ok=await ensureWorld();busy=false;if(!ok)return;
   $('#webgl-canvas').classList.add('active');
   world.syncProgress(progress);if(progress.position)world.teleport(progress.position);
-  const begin=()=>{mode='playing';$('#hud').hidden=false;clearInput();updateHud();if(progressPercent(progress)===0)help();};
-  if(progressPercent(progress)===0)playFilm('chapter1Intro',begin);else begin();
+  const begin=()=>{mode='playing';$('#hud').hidden=false;clearInput();updateHud();if(!hasJourney())help();};
+  if(!hasJourney())playFilm('chapter1Intro',begin);else begin();
 }
 function playFilm(key,done){
   clearInput();mode='film';filmDone=done;$('#hud').hidden=true;$('#cinematic').hidden=false;const v=$('#story-video');v.pause();v.removeAttribute('src');v.load();v.hidden=true;$('#film-status').textContent='';$('#film-fallback').hidden=false;
@@ -90,7 +93,7 @@ function doAction(t,stage){
  }
  if(stage==='reflect')workbench('transfer',()=>progress.reflection=true);
 }
-$('#journey').onclick=startJourney;$('#show-chapters').onclick=()=>{$('#home').hidden=true;$('#chapter-view').hidden=false;$('#back-home').focus();};$('#back-home').onclick=showHome;$('#brand').onclick=e=>{e.preventDefault();showHome();};$('#loading-back').onclick=showHome;$('#open-settings').onclick=showSettings;$('#sound-toggle').onclick=()=>setSound(!settings.sound);$('#open-codex').onclick=codex;$('#pause-button').onclick=pause;$('#help-button').onclick=help;
+$('#journey').onclick=startJourney;$('#show-chapters').onclick=()=>{$('#home').hidden=true;$('#chapter-view').hidden=false;$('#back-home').focus();};$('#back-home').onclick=showHome;$('#brand').onclick=e=>{e.preventDefault();showHome();};$('#loading-back').onclick=showHome;$('#open-settings').onclick=showSettings;$('#sound-toggle').onclick=()=>setSound(!settings.sound);$('#hud-sound').onclick=()=>setSound(!settings.sound);$('#guide-button').onclick=()=>openDialog('森林修復步驟','<h2>循著線索，一步步修復</h2><ol class=help-list><li>沿金色地面微光，找 A 上游、B 支流與 C 池岸的樣本瓶，靠近後按 E。</li><li>收齊樣本後，在 C 點比對證據。</li><li>找到破袋與污染支流旁的石閘，調整水路。</li><li>依序清理池岸垃圾、改善裂土、為枯萎植物配置棲地。</li><li>完成修復後，回到種子旁喚醒並驗證成果。</li></ol><p>場景中的浮動名稱是目前建議地點；金色微光沿可行走路線，會避開水池與植物。</p>');$('#open-codex').onclick=codex;$('#pause-button').onclick=pause;$('#help-button').onclick=help;
 $('#open-about').onclick=()=>openDialog('ABOUT FLORAVERSE','<h2>看見自己的成長，<br>也讓世界回應你的存在。</h2><p>《Bloom Story 尋找失落花園》是一場關於生態修復的沉浸旅程，以親自然設計、注意力恢復理論與柔和的自然意象作為創作方向。</p><p>第一章以土壤生態為主題，透過證據比對、水路解謎、近景清理、土壤與植被配置，練習理解行動與環境之間的關係。</p><p class="muted">目前開放第一章鍵鼠體驗。其他章節、攝影機儀式與正式劇情影片仍在製作中。進度儲存在目前瀏覽器，不會跨裝置同步。</p>');
 window.addEventListener('keydown',e=>{
   if(mode!=='playing')return;
@@ -119,16 +122,19 @@ function tick(now){requestAnimationFrame(tick);const realDt=(now-last)/1000,dt=M
   if(!active){$('#interaction').hidden=true;return;}
   const targets=world.activeTargets(stage,progress);nearest=null;
   for(const t of targets){const distance=Math.hypot(t.position.x-world.player.position.x,t.position.z-world.player.position.z);if(!nearest||distance<nearest.distance)nearest={...t,distance};}
+  if(nearest&&nearest.distance>=1.8&&targets.length){const t=targets[0];nearest={...t,distance:Math.hypot(t.position.x-world.player.position.x,t.position.z-world.player.position.z)};}
   const id=nearest?nearest.type+nearest.index:'';if(id!==lastTarget){held=0;lastTarget=id;}
   const near=nearest&&nearest.distance<1.8;$('#interaction').hidden=!near;
-  if(near){$('#target-label').textContent=nearest.label;$('#interaction-text').textContent=stages[stage].action;
+  if(near){$('#target-label').textContent=nearest.label;$('#interaction-text').textContent=stage==='survey'?(progress.scanned.length===3?'按 E · 比對證據':'按 E · 收集樣本'):stages[stage].action;$('#hold-progress').hidden=stages[stage].duration===0;
     if(stages[stage].duration>0&&keys.has('KeyE')&&(stage!=='survey'||scan)){
       held+=dt;$('#hold-progress').value=held/stages[stage].duration;if(stage==='isolate')world.rockProgress(nearest,held/stages[stage].duration);
       if(held>=stages[stage].duration)doAction(nearest,stage);
     }else{held=0;$('#hold-progress').value=0;}
   }else held=0;
-  if(now-lastHud>150){lastHud=now;$('#wayfinder').hidden=!nearest;
-    if(nearest){$('#wayfinder-text').textContent=nearest.label+' · '+nearest.distance.toFixed(1)+' m';$('#wayfinder-arrow').textContent=near?'✧':'↑';$('#wayfinder-arrow').style.transform=`rotate(${world.bearing(nearest.position)}rad)`;}
+  if(now-lastHud>150){lastHud=now;$('#wayfinder').hidden=!nearest||near;const routeLength=world.guideTo(nearest);
+    $('#objective-text').textContent=nearest?(near?'現在按 E，調查「'+nearest.label+'」。':'下一步：找到「'+nearest.label+'」。沿地上的金色微光前進，靠近後按 E。'):stages[stage].text;
+    $('#stage-label').textContent=stage==='survey'?'收集樣本 '+progress.scanned.length+' / 3，再比對證據':stages[stage].short;
+    if(nearest){$('#wayfinder-text').textContent=(near?'按 E 調查 · ':'沿金色微光 → ')+nearest.label+' · '+Math.max(nearest.distance,routeLength).toFixed(0)+' m';$('#wayfinder-arrow').textContent=near?'✧':'↑';$('#wayfinder-arrow').style.transform=`rotate(${world.bearing(nearest.position)}rad)`;}
   }
 }
 updateMenu();requestAnimationFrame(tick);

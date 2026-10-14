@@ -7,13 +7,14 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { Terrain } from './navigation.js';
-import { addUnderstory } from './understory.js';
+import { addUnderstory } from './ground-cover.js';
+import { createTaskSite } from './task-sites.js';
 
 export async function createWorld(canvas, settings, onStatus) {
   const base=import.meta.env.BASE_URL;
   const scene=new THREE.Scene(); scene.background=new THREE.Color('#08191b');scene.fog=new THREE.FogExp2('#08191b',.021);
   const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,150);
-  const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
   renderer.debug.onShaderError=()=>{throw new Error('場景材質無法在此裝置編譯');};
   renderer.shadowMap.type=THREE.PCFShadowMap;renderer.info.autoReset=false;
   renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
@@ -29,9 +30,9 @@ export async function createWorld(canvas, settings, onStatus) {
   let forest,guardian;
   try {
     onStatus('正在載入森林、守護者與地形…');
-    const [f,g,res]=await Promise.all([loader.loadAsync(base+'models/forest_refined.glb'),loader.loadAsync(base+'models/sprite_guardian_refined.glb'),fetch(base+'models/terrain.json')]);
-    if(!res.ok)throw new Error('地形資料載入失敗');
-    const terrain=new Terrain(await res.json());terrain.connect(0,5);
+    const [f,g,res,collisionRes]=await Promise.all([loader.loadAsync(base+'models/forest_refined.glb'),loader.loadAsync(base+'models/sprite_guardian_refined.glb'),fetch(base+'models/terrain.json'),fetch(base+'models/collisions.json')]);
+    if(!res.ok||!collisionRes.ok)throw new Error('地形或碰撞資料載入失敗');
+    const terrain=new Terrain(await res.json(),await collisionRes.json());terrain.connect(0,5);
     if(terrain.reachable.size<100)throw new Error('可行走地形不足');
     forest=f.scene; guardian=g.scene;
     const habitat={value:0},waterTime={value:0};
@@ -47,7 +48,7 @@ export async function createWorld(canvas, settings, onStatus) {
       };
       material.customProgramCacheKey=()=>fragment;
     }
-    worldSurface(waterMaterial,'vec2 wp=vHabitatPosition.xz;float flow=sin(wp.x*.8+sin(wp.y*.7+uWaterTime*.19)*2.+earthNoise(wp*.6)*3.);float vein=pow(1.-abs(flow),14.);float ripples=sin(wp.x*4.+uWaterTime*.7)*sin(wp.y*3.-uWaterTime*.5);diffuseColor.rgb=diffuseColor.rgb*(.75+ripples*.12)+mix(vec3(.24,.045,.43),vec3(.03,.13,.12),uHabitat)*vein;', {uWaterTime:waterTime,uHabitat:habitat});
+    worldSurface(waterMaterial,'vec2 wp=vHabitatPosition.xz;float scum=smoothstep(.52,.77,earthNoise(wp*.65+vec2(uWaterTime*.012,0.)));float ripple=sin(wp.x*5.+uWaterTime*.7)*sin(wp.y*4.-uWaterTime*.5);diffuseColor.rgb=mix(vec3(.022,.048,.042),vec3(.075,.038,.081),scum*(1.-uHabitat))*(.94+ripple*.06);', {uWaterTime:waterTime,uHabitat:habitat});
     const compileWater=waterMaterial.onBeforeCompile;
     waterMaterial.onBeforeCompile=shader=>{compileWater(shader);shader.vertexShader='uniform float uWaterTime;\n'+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ntransformed+=normalize(normal)*(sin(position.x*.9+uWaterTime*.8)+cos(position.y*1.1-uWaterTime*.7))*.018;');shader.fragmentShader=shader.fragmentShader.replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nnormal=normalize(normal+vec3(sin(vHabitatPosition.x*3.5+uWaterTime*.9)*.055,0.,cos(vHabitatPosition.z*4.-uWaterTime*.7)*.055));');};
     const groundMaterial=new THREE.MeshStandardMaterial({color:'#a5a98c',roughness:.97,metalness:0});
@@ -69,7 +70,7 @@ export async function createWorld(canvas, settings, onStatus) {
     const leafShell=guardian.getObjectByName('Leaf_Envelope')??new THREE.Mesh(new THREE.LatheGeometry(leafProfile,24,.62,Math.PI*2-1.24),new THREE.MeshStandardMaterial({color:'#8e8052',roughness:.85,side:THREE.DoubleSide}));
     worldSurface(leafShell.material,'float veins=pow(.5+.5*sin(vHabitatPosition.y*18.+sin(vHabitatPosition.x*25.)*1.5),12.);float grain=earthNoise(vHabitatPosition.xz*70.);diffuseColor.rgb*=.74+grain*.28+veins*.14;');if(!leafShell.parent)guardian.add(leafShell);
     const core=guardian.getObjectByName('Sprite_Core');if(core)core.position.y=.22;
-    const halo=new THREE.Mesh(new THREE.RingGeometry(.34,.40,40),new THREE.MeshBasicMaterial({color:'#cdf6c6',transparent:true,opacity:.7,side:THREE.DoubleSide}));halo.rotation.x=-Math.PI/2;player.add(halo);halo.position.y=.07;
+    const halo=new THREE.Mesh(new THREE.RingGeometry(.34,.40,40),new THREE.MeshBasicMaterial({color:'#cdf6c6',transparent:true,opacity:.7,side:THREE.DoubleSide}));halo.rotation.x=-Math.PI/2;player.add(halo);halo.position.y=.07;halo.visible=false;
     const glow=new THREE.PointLight('#d1e8ad',.5,3);glow.position.y=1.3;player.add(glow);
     const terrainY=(x,z)=>terrain.height(x,z)??terrain.raw(x,z)??-1.5;
     function at(x,z){const [a,b]=terrain.nearest(x,z);return new THREE.Vector3(a,terrainY(a,b),b);}
@@ -83,25 +84,31 @@ export async function createWorld(canvas, settings, onStatus) {
     }
     const targets=[];
     function marker(type,index,x,z,label){
-      const position=at(x,z),group=new THREE.Group();group.position.copy(position);
-      const mat=new THREE.MeshStandardMaterial({color:type==='survey'?'#c1b7ff':'#c5f4c7',emissive:type==='survey'?'#8171db':'#73c79a',emissiveIntensity:1.3,roughness:.35});
-      const geom=type==='survey'?new THREE.CylinderGeometry(.16,.2,.16,12):type==='soil'?(index===0?new THREE.BoxGeometry(.55,.09,.35):index===1?new THREE.CylinderGeometry(.42,.5,.2,12):new THREE.ConeGeometry(.32,.8,7)):new THREE.SphereGeometry(.22,12,8);
-      const crystal=new THREE.Mesh(geom,mat);crystal.position.y=type==='soil'&&index===2?.5:.22;group.add(crystal);
-      if(type==='survey'){mat.color.set('#ada386');mat.emissiveIntensity=.15;}if(type==='soil'){mat.color.set(index===0?'#938271':index===1?'#75563b':'#776c3e');mat.emissiveIntensity=.1;}
-      const ring=new THREE.Mesh(new THREE.RingGeometry(.65,.72,40),new THREE.MeshBasicMaterial({color:'#b6efdb',transparent:true,opacity:.6,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=.06;group.add(ring);
-      if(type==='isolate'){
-        const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(.65,0),new THREE.MeshStandardMaterial({color:'#6e7d76',roughness:.95}));rock.position.set(.1,.55,.2);group.add(rock);group.userData.rock=rock;
-        const track=new THREE.Mesh(new THREE.BoxGeometry(1.6,.04,.12),new THREE.MeshBasicMaterial({color:'#a8dbc7'}));track.position.y=.08;group.add(track);
-      }
-      scene.add(group);targets.push({type,index,position,group,crystal,ring,label});
+      const position=at(x,z),site=createTaskSite(type,index,label);site.group.position.copy(position);scene.add(site.group);
+      const t={...site,type,index,position,crystal:site.focus,label};targets.push(t);
+      if(site.rock){t.obstacle={x:position.x+.9,z:position.z+.1,radius:site.radius};terrain.obstacles.push(t.obstacle,{x:position.x+1.4,z:position.z-.5,radius:.23});}
     }
     marker('survey',0,7,4,'A 上游樣本');marker('survey',1,10,-4,'B 支流出口樣本');marker('survey',2,-7,9,'C 池岸樣本');
     marker('isolate',0,8,0,'上游截流石');marker('isolate',1,5,9,'支流截流石');
     marker('soil',0,11,6,'池岸碎片清理');marker('soil',1,-6,11,'荒地土壤剖面');marker('soil',2,0,13,'枯萎植物根部');
     marker('ritual',0,0,8,'生命種子');
     const seed=targets.at(-1);
+    const guideDots=new THREE.InstancedMesh(new THREE.SphereGeometry(.035,8,6),new THREE.MeshBasicMaterial({color:'#d0ad64'}),48);guideDots.count=0;guideDots.frustumCulled=false;scene.add(guideDots);
+    let guideTarget=null,guideStart=new THREE.Vector3(999,999,999),guideLength=0,guideRoute=[];
+    const guideMatrix=new THREE.Object3D();
+    function guideTo(target){
+      if(target)target=targets.find(t=>t.type===target.type&&t.index===target.index);
+      if(!target){guideTarget=null;guideDots.count=0;return 0;}
+      if(target!==guideTarget||player.position.distanceTo(guideStart)>.9){
+        let closest=0,off=Infinity;guideRoute.forEach((p,i)=>{const d=Math.hypot(p[0]-player.position.x,p[2]-player.position.z);if(d<off){off=d;closest=i;}});
+        if(target!==guideTarget||off>1.2){guideRoute=terrain.pathTo(player.position.x,player.position.z,target.position.x,target.position.z);closest=0;}
+        guideTarget=target;guideStart.copy(player.position);const route=guideRoute.slice(closest);let count=0;guideLength=0;
+        for(let i=1;i<route.length;i++){guideLength+=Math.hypot(route[i][0]-route[i-1][0],route[i][2]-route[i-1][2]);if(i%3===0&&count<48){guideMatrix.position.set(route[i][0],route[i][1]+.42,route[i][2]);guideMatrix.updateMatrix();guideDots.setMatrixAt(count++,guideMatrix.matrix);}}
+        guideDots.count=count;guideDots.instanceMatrix.needsUpdate=true;
+      }return guideLength;
+    }
     let randomSeed=27;const rand=()=>{randomSeed=(randomSeed*16807)%2147483647;return randomSeed/2147483647;};
-    const growth=addUnderstory(scene,terrain,targets.filter(t=>t.type==='soil').map(t=>t.position),rand);
+    const growth=addUnderstory(scene,terrain,targets.filter(t=>t.type==='soil').map(t=>t.position),rand,targets);
     const dots=new Float32Array(180*3);for(let i=0;i<dots.length;i+=3){dots[i]=(rand()-.5)*32;dots[i+1]=rand()*7;dots[i+2]=(rand()-.5)*32;}
     const glowCanvas=document.createElement('canvas');glowCanvas.width=glowCanvas.height=32;
     const glowContext=glowCanvas.getContext('2d'),gradient=glowContext.createRadialGradient(16,16,0,16,16,16);
@@ -117,7 +124,7 @@ export async function createWorld(canvas, settings, onStatus) {
     let cameraCollisionTimer=0,occlusionDistance=12;
     function resize(){
       renderer.shadowMap.enabled=quality==='high';
-      const max=quality==='high'?1.5:quality==='low'?.8:1;
+      const max=quality==='high'?1.75:quality==='low'?1:1.5;
       renderer.setPixelRatio(Math.min(devicePixelRatio,max));renderer.setSize(innerWidth,innerHeight);composer.setPixelRatio(renderer.getPixelRatio());composer.setSize(innerWidth,innerHeight);
       camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
     }resize();
@@ -156,19 +163,22 @@ export async function createWorld(canvas, settings, onStatus) {
       restoration=THREE.MathUtils.damp(restoration,progress.ritual?1:progress.barriers.length*.06+progress.soils.length*.18,1,dt);
       habitat.value=restoration;waterTime.value=reduced?0:time;
       waterMaterial.color.lerpColors(pollutedWater,clearWater,restoration);
-      waterMaterial.emissiveIntensity=.35*(1-restoration);ambient.intensity=1.4+restoration*.5;moon.intensity=2.2-restoration*.7;warm.intensity=1.1+restoration*2.;scene.fog.color.lerpColors(darkFog,livingFog,restoration*.5);scene.background.copy(scene.fog.color);
+      waterMaterial.emissiveIntensity=.035*(1-restoration);ambient.intensity=1.4+restoration*.5;moon.intensity=2.2-restoration*.7;warm.intensity=1.1+restoration*2.;scene.fog.color.lerpColors(darkFog,livingFog,restoration*.5);scene.background.copy(scene.fog.color);
       repairs.forEach((r,i)=>{const t=targets.find(t=>t.type==='soil'&&t.index===i);r.value.set(t.position.x,t.position.z,0,THREE.MathUtils.damp(r.value.w,progress.soils.includes(i)?1:0,1.8,dt));});
-      growth.update(repairs.map(r=>r.value.w),progress.ritual,quality);
+      growth.update(repairs.map(r=>r.value.w),progress.ritual,quality,time,reduced);
       for(const t of targets){
         const done=t.type==='survey'?progress.scanned.includes(t.index)&&!(progress.scanned.length===3&&!progress.evidence):t.type==='isolate'?progress.barriers.includes(t.index):t.type==='soil'?progress.soils.includes(t.index):progress.ritual;
         t.group.visible=true;
         t.ring.visible=(t.type===stage || (t.type==='ritual'&&stage==='reflect'))&&!done;
         if(t.type==='soil'&&t.index!==progress.soils.length)t.ring.visible=false;
         if(t.type==='survey'&&progress.scanned.length===3&&!progress.evidence)t.ring.visible=t.index===2;
-        if(t.type==='isolate'&&done){t.group.visible=true;t.group.userData.rock.position.x=1;}
-        t.crystal.visible=!(t.type==='soil'&&t.index===0&&done);t.crystal.material.emissiveIntensity=done?.05:.2;
+        if(t.type==='isolate'&&done){t.rock.position.x=1.3;t.obstacle.x=t.position.x+1.3;}
+        t.sign.visible=t===guideTarget&&player.position.distanceTo(t.position)>2.1;
+        if(t.type==='soil'&&t.index===0&&done)t.objects.forEach(o=>o.visible=false);
+        if(t.type==='soil'&&t.index===2)t.plantMaterial.color.set(done?'#718b49':'#6f7350');
+        t.crystal.visible=!(t.type==='soil'&&t.index===0&&done);t.ring.material.opacity=t===guideTarget?.5:.12;
         if(stage==='reflect'&&t===seed)t.group.visible=true;
-        if(t.type==='ritual'){t.crystal.position.y=1.+(reduced?0:Math.sin(time*1.8)*.08);if(!reduced)t.crystal.rotation.y=time*.25;}
+        if(t.type==='ritual'){t.crystal.position.y=.45+(reduced?0:Math.sin(time*1.8)*.045);if(!reduced)t.crystal.rotation.y=time*.25;}
       }
       if(!reduced){particles.rotation.y=time*.015;particles.position.y=Math.sin(time*.3)*.2;}
       for(let i=0;i<16;i++){const t=reduced?i:time,angle=i*2.4+t*.35;localDots[i*3]=Math.cos(angle)*(.45+i%3*.18);localDots[i*3+1]=.8+(i%5)*.23+Math.sin(t*.7+i)*.1;localDots[i*3+2]=Math.sin(angle)*.65;const bright=reduced?.65:.3+.7*(.5+.5*Math.sin(t*1.4+i*3));localColors.set([bright*.85,bright,bright*.45],i*3);}sparks.geometry.attributes.position.needsUpdate=true;sparks.geometry.attributes.color.needsUpdate=true;
@@ -180,11 +190,11 @@ export async function createWorld(canvas, settings, onStatus) {
       return targets.filter(t=>(t.type===stage||(stage==='reflect'&&t.type==='ritual'))&&(t.type!=='soil'||t.index===p.soils.length)&&!(t.type==='survey'?p.scanned.includes(t.index):t.type==='isolate'?p.barriers.includes(t.index):false));
     }
     draco.dispose();onStatus('森林已準備好');
-    return {renderer,player,terrain,targets,spawn,seed,resize,rotate,zoom,setQuality,teleport,update,activeTargets,touchWater,
+    return {renderer,player,terrain,targets,spawn,seed,resize,rotate,zoom,setQuality,teleport,update,activeTargets,touchWater,guideTo,
       bearing(p){return Math.atan2(p.x-player.position.x,-(p.z-player.position.z))+yaw;},
       resetCamera(){yaw=0;pitch=.38;targetDistance=8;snapCamera();},
-      syncProgress(p){for(const t of targets)if(t.type==='isolate')t.group.userData.rock.position.x=p.barriers.includes(t.index)?1:.1;},
-      rockProgress(t,f){if(t?.group.userData.rock)t.group.userData.rock.position.x=.1+f*.9;},
+      syncProgress(p){for(const t of targets){if(t.type==='isolate'){t.rock.position.x=p.barriers.includes(t.index)?1.3:.9;t.obstacle.x=t.position.x+t.rock.position.x;}if(t.type==='soil'&&t.index===0)t.objects.forEach(o=>o.visible=!p.soils.includes(0));}},
+      rockProgress(t,f){if(t?.rock){t.rock.position.x=.9+f*.4;t.obstacle.x=t.position.x+t.rock.position.x;}},
       stats(){return {triangles:renderer.info.render.triangles,calls:renderer.info.render.calls,geometries:renderer.info.memory.geometries};}
     };
   }catch(error){draco.dispose();composer.dispose();renderer.dispose();throw error;}

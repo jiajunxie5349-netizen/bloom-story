@@ -26,7 +26,7 @@ const items=Object.fromEntries(specimens.map(i=>[i.id,i.destination]));assert.eq
 const zones={A:'cover',B:'plant',C:'buffer',D:'keep',E:'isolate'};assert.equal(checkPuzzle('soil',{zones}).ok,true);assert.equal(checkPuzzle('soil',{zones:{...zones,E:'cover'}}).ok,false);
 assert.equal(checkPuzzle('plants',{zones:{shade:'shade',slope:'slope',shore:'shore'},habitat:true}).ok,true);assert.equal(checkPuzzle('plants',{zones:{shade:'shore',slope:'slope',shore:'shade'},habitat:true}).ok,false);
 assert.equal(checkPuzzle('transfer',{order:['observe','source','restore','monitor'],reason:'data'}).ok,true);assert.equal(checkPuzzle('transfer',{order:['restore','observe','source','monitor'],reason:'data'}).ok,false);
-const t=new Terrain(JSON.parse(fs.readFileSync(new URL('../public/models/terrain.json',import.meta.url))));t.connect(0,5);
+const t=new Terrain(JSON.parse(fs.readFileSync(new URL('../public/models/terrain.json',import.meta.url))),JSON.parse(fs.readFileSync(new URL('../public/models/collisions.json',import.meta.url))));t.connect(0,5);
 assert(t.safe.size>1000);
 const taskPoints=[[7,4],[10,-4],[-7,9],[8,0],[5,9],[11,6],[-6,11],[0,13],[0,8]];
 // Verify actual traversability with the controller's footprint and interpolated height.
@@ -42,5 +42,8 @@ for(let k=0;k<q.length;k++){
 }
 for(const [x,z] of taskPoints){const point=t.nearest(x,z),i=t.index(...point);assert(parents.has(i),`unreachable task ${x},${z} -> ${point}`);}
 assert.equal(t.canMove(100,100,0),false);
+assert(t.blocked.size>100);for(const i of t.blocked){const [x,z]=t.coordinates(i);assert.equal(t.canMove(x,z,t.raw(x,z)),false);}
+for(const [x,z] of taskPoints){const path=t.pathTo(...t.nearest(0,5),...t.nearest(x,z));assert(path.length>0,'missing guide route');assert(path.every(([a,y,b])=>t.canMove(a,b,y)));}
+const [ox,oz]=t.nearest(0,5),oy=t.height(ox,oz);assert(t.canMove(ox,oz,oy));t.obstacles.push({x:ox,z:oz,radius:.45});assert.equal(t.canMove(ox,oz,oy),false);assert.notDeepEqual(t.nearest(ox,oz),[ox,oz]);t.obstacles.pop();assert(t.canMove(ox,oz,oy));
 console.log(`PASS progress sequence, 80% gating, save corruption, unavailable storage, ${taskPoints.length} walkable task routes (${parents.size} cells)`);
 
