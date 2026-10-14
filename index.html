@@ -1,16 +1,2 @@
 <!doctype html>
-<html lang="zh-TW">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- 這是未來玩家在瀏覽器分頁上看到的遊戲名稱 -->
-    <title>FloraVerse | Bloom Story 尋找失落花園</title>
-  </head>
-  <body>
-    <!-- 這是我們 Three.js 專屬的 3D 畫布，所有的光影與精靈都會在這裡面渲染 -->
-    <canvas id="webgl-canvas"></canvas>
-    
-    <!-- 連接我們的大腦：載入 main.js 執行檔 -->
-    <script type="module" src="/src/main.js"></script>
-  </body>
-</html>
+<html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#0b211e"><meta name="description" content="循著微光探索種子森林，讓世界重新盛開。"><title>FloraVerse｜Bloom Story 尋找失落花園</title><style>body{margin:0;background:#0b211e;color:#dce8cd;font-family:'Microsoft JhengHei',sans-serif}.boot{min-height:100vh;display:grid;place-content:center;text-align:center;padding:24px}.boot p{color:#a8bfa6;line-height:1.9}.boot button{padding:12px 22px;background:#d7e3c6;border:0;border-radius:6px;color:#20382c;cursor:pointer}</style></head><body><div id="app"><section class="boot"><h1>Bloom Story</h1><p id="boot-message">正在開啟尋找失落花園…</p><button onclick="location.reload()">重新載入</button><noscript><p>請啟用瀏覽器的 JavaScript，才能開啟遊戲。</p></noscript></section></div><script>function bootFailure(){const b=document.getElementById('boot-message');if(b)b.textContent='遊戲檔案無法載入。請確認網路連線，並重新整理；若仍發生，網站可能尚未完成發布。'}window.addEventListener('error',bootFailure);setTimeout(bootFailure,20000);</script><script type="module" src="/src/main.js" onerror="bootFailure()"></script></body></html>
