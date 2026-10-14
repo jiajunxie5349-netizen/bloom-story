@@ -95,7 +95,10 @@ export async function createWorld(canvas, settings, onStatus) {
       temp.position.copy(flowerPositions[i]);temp.scale.setScalar(.001);temp.updateMatrix();flowers.setMatrixAt(i,temp.matrix);
     }scene.add(flowers);flowers.frustumCulled=false;
     const dots=new Float32Array(180*3);for(let i=0;i<dots.length;i+=3){dots[i]=(rand()-.5)*32;dots[i+1]=rand()*7;dots[i+2]=(rand()-.5)*32;}
-    const particles=new THREE.Points(new THREE.BufferGeometry().setAttribute('position',new THREE.BufferAttribute(dots,3)),new THREE.PointsMaterial({size:.08,color:'#b6e6ba',transparent:true,opacity:.65,depthWrite:false,blending:THREE.AdditiveBlending}));scene.add(particles);
+    const glowCanvas=document.createElement('canvas');glowCanvas.width=glowCanvas.height=32;
+    const glowContext=glowCanvas.getContext('2d'),gradient=glowContext.createRadialGradient(16,16,0,16,16,16);
+    gradient.addColorStop(0,'rgba(255,255,255,1)');gradient.addColorStop(.25,'rgba(255,255,255,.65)');gradient.addColorStop(1,'rgba(255,255,255,0)');glowContext.fillStyle=gradient;glowContext.fillRect(0,0,32,32);
+    const particles=new THREE.Points(new THREE.BufferGeometry().setAttribute('position',new THREE.BufferAttribute(dots,3)),new THREE.PointsMaterial({size:.08,color:'#b6e6ba',map:new THREE.CanvasTexture(glowCanvas),transparent:true,opacity:.65,depthWrite:false,blending:THREE.AdditiveBlending}));scene.add(particles);
     const pollutedWater=new THREE.Color('#241b36'),clearWater=new THREE.Color('#357a71');
     let yaw=0,pitch=.38,distance=8,targetDistance=8,quality=settings.quality,restoration=0,lastGrowth=-1;
     const velocity=new THREE.Vector3(),move=new THREE.Vector3(),desiredCamera=new THREE.Vector3(),look=new THREE.Vector3();
