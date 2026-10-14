@@ -15,7 +15,7 @@ export async function createWorld(canvas, settings, onStatus) {
   const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,150);
   const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});
   renderer.debug.onShaderError=()=>{throw new Error('場景材質無法在此裝置編譯');};
-  renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.info.autoReset=false;
+  renderer.shadowMap.type=THREE.PCFShadowMap;renderer.info.autoReset=false;
   renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
   const pmrem=new THREE.PMREMGenerator(renderer),room=new RoomEnvironment();
   const reflection=pmrem.fromScene(room,.08);scene.environment=reflection.texture;scene.environmentIntensity=.42;room.dispose();pmrem.dispose();
@@ -62,7 +62,7 @@ export async function createWorld(canvas, settings, onStatus) {
       }
     });scene.add(forest);
     const player=new THREE.Group();guardian.scale.setScalar(.65);player.add(guardian);scene.add(player);
-    guardian.traverse(o=>{if(!o.isMesh)return;o.castShadow=true;if(o.name==='Sprite_Core'){o.material.color.set('#c8d8a0');o.material.emissive.set('#a6cb68');o.material.emissiveIntensity=.35;o.material.roughness=.25;}else if(!/Hand|Sprout/.test(o.name)){o.material.roughness=.83;o.material.metalness=.08;}});
+    guardian.traverse(o=>{if(!o.isMesh)return;o.castShadow=true;if(o.name==='Sprite_Core'){o.material.color.set('#49622b');o.material.emissive.set('#8ca453');o.material.emissiveIntensity=.18;o.material.roughness=.6;}else if(/Hand/.test(o.name)){o.material.color.set('#9eaf72');o.material.emissiveIntensity=.18;}else if(!/Sprout/.test(o.name)){o.material.roughness=.83;o.material.metalness=.08;}});
     // Open leaf envelope around the existing core, matching the supplied character study.
     const cloak=guardian.getObjectByName('Sprite_Cloak');if(cloak)cloak.visible=false;
     const leafProfile=[new THREE.Vector2(.04,-.78),new THREE.Vector2(.23,-.57),new THREE.Vector2(.31,-.26),new THREE.Vector2(.34,.05),new THREE.Vector2(.39,.32),new THREE.Vector2(.29,.63),new THREE.Vector2(.13,.87),new THREE.Vector2(.015,1.09)];
