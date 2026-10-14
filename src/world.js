@@ -15,7 +15,7 @@ export async function createWorld(canvas, settings, onStatus) {
   const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,150);
   const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});
   renderer.debug.onShaderError=()=>{throw new Error('場景材質無法在此裝置編譯');};
-  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.info.autoReset=false;
   renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
   const pmrem=new THREE.PMREMGenerator(renderer),room=new RoomEnvironment();
   const reflection=pmrem.fromScene(room,.08);scene.environment=reflection.texture;scene.environmentIntensity=.42;room.dispose();pmrem.dispose();
@@ -173,7 +173,7 @@ export async function createWorld(canvas, settings, onStatus) {
       if(!reduced){particles.rotation.y=time*.015;particles.position.y=Math.sin(time*.3)*.2;}
       for(let i=0;i<16;i++){const t=reduced?i:time,angle=i*2.4+t*.35;localDots[i*3]=Math.cos(angle)*(.45+i%3*.18);localDots[i*3+1]=.8+(i%5)*.23+Math.sin(t*.7+i)*.1;localDots[i*3+2]=Math.sin(angle)*.65;const bright=reduced?.65:.3+.7*(.5+.5*Math.sin(t*1.4+i*3));localColors.set([bright*.85,bright,bright*.45],i*3);}sparks.geometry.attributes.position.needsUpdate=true;sparks.geometry.attributes.color.needsUpdate=true;
       particles.visible=quality!=='low';
-      if(quality==='high')composer.render(dt);else renderer.render(scene,camera);
+      renderer.info.reset();if(quality==='high')composer.render(dt);else renderer.render(scene,camera);
     }
     function activeTargets(stage,p){
       if(stage==='survey'&&p.scanned.length===3&&!p.evidence)return [targets.find(t=>t.type==='survey'&&t.index===2)];

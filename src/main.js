@@ -99,7 +99,7 @@ window.addEventListener('keydown',e=>{
   if(e.code==='KeyH'&&!e.repeat){help();return;}
   if(['KeyW','KeyA','KeyS','KeyD','KeyE','Space'].includes(e.code))e.preventDefault();
   keys.add(e.code);
-  if(e.code==='KeyE'&&!e.repeat&&nearest&&nearest.distance<1.8){const stage=stageOf(progress);if(stages[stage].duration===0)doAction(nearest,stage);}
+  if(e.code==='KeyE'&&!e.repeat){const stage=stageOf(progress);const candidates=world?.activeTargets(stage,progress)??[];const t=candidates.find(t=>Math.hypot(t.position.x-world.player.position.x,t.position.z-world.player.position.z)<1.8);if(t&&stages[stage].duration===0)doAction(t,stage);}
 });
 window.addEventListener('keyup',e=>{keys.delete(e.code);if(e.code==='KeyE'){held=0;if(nearest?.type==='isolate'&&!progress.barriers.includes(nearest.index))world?.rockProgress(nearest,0);}});
 const canvas=$('#webgl-canvas');canvas.addEventListener('contextmenu',e=>e.preventDefault());
