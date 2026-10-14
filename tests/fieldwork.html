@@ -1,0 +1,12 @@
+<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FloraVerse 互動工作台驗收</title><style>body{margin:0;padding:20px;background:#0b2018;color:#e5e8d0;font-family:'Microsoft JhengHei',sans-serif}nav{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:15px}nav button{padding:10px;background:#38513a;color:#e1eac8;border:1px solid #84956a}#test-root{max-width:1000px;margin:auto}.workbench{padding:25px}</style><nav id="tests"></nav><p id="result" role="status">測試入口，不會寫入玩家存檔，不包含於正式建置。</p><div id="test-root"></div><script type="module">
+import '../src/workbench.css';
+import {mountWorkbench} from '../src/workbench.js';
+import {puzzleNames} from '../src/puzzles.js';
+let cleanup,drafts={};
+for(const [kind,name]of Object.entries(puzzleNames)){
+ const b=document.createElement('button');b.textContent=name;b.onclick=()=>{
+ cleanup?.();document.getElementById('result').textContent='測試中：'+name;
+ cleanup=mountWorkbench(document.getElementById('test-root'),kind,drafts[kind],d=>drafts[kind]=d,()=>{document.getElementById('result').textContent='已完成：'+name;},()=>{});
+ };document.getElementById('tests').append(b);
+}
+</script></html>
