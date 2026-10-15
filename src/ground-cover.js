@@ -24,7 +24,7 @@ export function addUnderstory(scene,terrain,centers,rand,sites=[]){
  let last=-1;
  return {update(strengths,ritual,quality,time=0,reduced=false){
   wind.value=reduced?0:time;grass.count=quality==='low'?7000:14000;flowers.count=quality==='low'?800:1800;
-  const living=ritual?1:strengths[1]??0;reedMaterial.color.setHSL(.09+living*.14,.26,.26+living*.1);
+  const living=ritual?1:strengths[1]??0;reedMaterial.color.setHSL(.09+living*.14,.26,.10+living*.06);
   const signature=strengths.reduce((s,v,i)=>s+v*(i+1),ritual?10:0);if(Math.abs(signature-last)<.02)return;last=signature;
   items.forEach(({p,angle,scale},i)=>{const heal=Math.max(ritual?.9:0,...centers.map((c,j)=>strengths[j]*Math.max(0,1-p.distanceTo(c)/7)));m.position.copy(p);m.rotation.set(0,angle,0);m.scale.set(scale*(.95+heal*.15),scale*(.38+heal*.8),scale*(.95+heal*.15));m.updateMatrix();grass.setMatrixAt(i,m.matrix);grass.setColorAt(i,color.setHSL(.09+heal*.15,.27+heal*.13,.25+heal*.22));
    if(i<360){for(let n=0;n<5;n++){const a=n*6.28/5;m.position.copy(p);m.position.x+=Math.cos(a)*.055;m.position.z+=Math.sin(a)*.055;m.position.y+=.18+heal*.05;m.rotation.set(0,a,0);m.scale.setScalar(Math.max(.001,heal));m.updateMatrix();flowers.setMatrixAt(i*5+n,m.matrix);}}
