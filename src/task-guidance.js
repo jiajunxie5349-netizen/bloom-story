@@ -1,5 +1,5 @@
 import {stageOf} from './progress.js';
-const stations=[['A 上游採樣站','地圖東側的池岸。尋找標有 A 的木牌與細頸採樣瓶。'],['B 支流破袋採樣站','地圖東北側。尋找破損肥料袋旁標有 B 的木牌。'],['C 池岸採樣站','地圖西南側的池岸。尋找垃圾附近標有 C 的木牌。']];
+const stations=[['A 上游採樣站','地圖東北側溪流源頭。沿外圍環行林地前往，尋找 A 木牌與較清的入流水。'],['B 支流破袋採樣站','地圖東側支流中段。尋找破袋、暗色滲流與 B 木牌。'],['C 池岸採樣站','地圖西南側的池岸。尋找垃圾附近標有 C 的木牌。']];
 export function taskBrief(p){
  const stage=stageOf(p);
  if(stage==='survey'){
@@ -22,12 +22,15 @@ export function taskBrief(p){
 }
 
 export function drawJournalMap(canvas,world,brief,p){
- const c=canvas.getContext('2d'),w=canvas.width,h=canvas.height,t=world.terrain,pad=20,extent=60;
- const point=(x,z)=>[pad+(x+30)/extent*(w-pad*2),pad+(z+30)/extent*(h-pad*2)];
+ const c=canvas.getContext('2d'),w=canvas.width,h=canvas.height,t=world.terrain,pad=20,extent=72;
+ const point=(x,z)=>[pad+(x+36)/extent*(w-pad*2),pad+(z+36)/extent*(h-pad*2)];
  c.fillStyle='#13241d';c.fillRect(0,0,w,h);
- const [cx,cy]=point(0,0);c.fillStyle='#395955';c.beginPath();c.ellipse(cx,cy,(w-pad*2)*27/extent,(h-pad*2)*27/extent,0,0,6.28);c.fill();
+ const [cx,cy]=point(0,0);c.fillStyle='#395955';c.beginPath();c.ellipse(cx,cy,(w-pad*2)*34/extent,(h-pad*2)*34/extent,0,0,6.28);c.fill();
  for(let iz=0;iz<t.size;iz+=2)for(let ix=0;ix<t.size;ix+=2){const y=t.heights[iz*t.size+ix];if(y==null)continue;const x=t.min+ix*t.step,z=t.min+iz*t.step;if(Math.hypot(x,z)>t.radius)continue;const [a,b]=point(x,z);c.fillStyle=y<-2.45?'#486460':'#76694b';c.fillRect(a,b,(w-pad*2)*.5/extent+1,(h-pad*2)*.5/extent+1);}
  c.font='12px "Microsoft JhengHei",sans-serif';c.textAlign='center';c.fillStyle='#cad7ba';c.fillText('北 N',w/2,14);
+ c.strokeStyle='#c5b88970';c.lineWidth=2;c.beginPath();c.ellipse(cx,cy,(w-pad*2)*30/extent,(h-pad*2)*30/extent,0,0,Math.PI*2);c.stroke();
+ const stream=[[19,-26],[18,-17],[16,-8],[12,0],[8,6]];c.beginPath();stream.forEach(([a,b],i)=>{const [x,y]=point(a,b);i?c.lineTo(x,y):c.moveTo(x,y);});c.strokeStyle='#739c95';c.lineWidth=3;c.stroke();
+ for(const n of world.npcs??[]){const [a,b]=point(n.position.x,n.position.z);c.fillStyle='#b3c78f';c.fillText('❧',a,b);}
  const markers=world.targets.filter(s=>brief.stage==='survey'?s.type==='survey':brief.target&&s.type===brief.target.type&&s.index===brief.target.index);
  for(const s of markers){const [a,b]=point(s.position.x,s.position.z),done=s.type==='survey'&&p.scanned.includes(s.index),selected=brief.target?.type===s.type&&brief.target?.index===s.index;c.fillStyle=selected?'#fff0c5':done?'#9da98f':'#e7d9ad';c.beginPath();c.arc(a,b,6,0,Math.PI*2);c.fill();const text=s.type==='survey'?'ABC'[s.index]:brief.name;c.strokeStyle='#14251c';c.lineWidth=3;c.strokeText(text,a,b-14);c.fillText(text,a,b-14);if(selected){c.strokeStyle='#ede5c4';c.lineWidth=1;c.beginPath();c.arc(a,b,10,0,6.28);c.stroke();}}
  const [x,y]=point(world.player.position.x,world.player.position.z);c.fillStyle='#7ae1ed';c.strokeStyle='#122b2a';c.lineWidth=2;c.beginPath();c.arc(x,y,5,0,6.28);c.fill();c.stroke();

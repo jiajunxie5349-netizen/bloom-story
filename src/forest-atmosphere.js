@@ -17,7 +17,7 @@ export function addForestAtmosphere(scene,random){
  const branch=new THREE.InstancedMesh(new THREE.CylinderGeometry(.06,.16,1,7),bark,315);group.add(branch);
  const dummy=new THREE.Object3D();let fi=0,bi=0;
  for(let i=0;i<105;i++){
-  const a=i*2.39996,r=33+random()*27,x=Math.sin(a)*r,z=Math.cos(a)*r,h=10+random()*13;
+  const a=i*2.39996,r=37+random()*23,x=Math.sin(a)*r,z=Math.cos(a)*r,h=10+random()*13;
   dummy.position.set(x,h*.5-3,z);dummy.rotation.set(.02,random()*6,.04);dummy.scale.set(1+random(),h,1+random());dummy.updateMatrix();trunk.setMatrixAt(i,dummy.matrix);
   for(let j=0;j<3;j++){
    const b=a+j*2.1+random()*.6,len=3+random()*3,y=h*.55+j*1.5-3;

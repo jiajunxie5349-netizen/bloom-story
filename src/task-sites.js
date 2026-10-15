@@ -7,11 +7,13 @@ export function createTaskSite(type,index,label){
  if(type==='survey'){
 
   focus=bottle(.72,.05,1.2);
-  const board=mesh(new THREE.BoxGeometry(.36,.26,.035),earth,.9,.63,.15);
+  const board=mesh(new THREE.BoxGeometry(.50,.34,.035),earth,.9,.76,.15);
   const labelCanvas=document.createElement('canvas');labelCanvas.width=128;labelCanvas.height=96;const lc=labelCanvas.getContext('2d');lc.fillStyle='#5b4931';lc.fillRect(0,0,128,96);lc.fillStyle='#e8d9b5';lc.font='bold 64px Georgia';lc.textAlign='center';lc.fillText('ABC'[index],64,72);const lm=new THREE.CanvasTexture(labelCanvas);lm.colorSpace=THREE.SRGBColorSpace;board.material=new THREE.MeshStandardMaterial({map:lm,roughness:1});
-  const stick=mesh(new THREE.CylinderGeometry(.018,.023,.45,8),earth,.9,.22,.15);stick.rotation.z=-.12;
+  const stick=mesh(new THREE.CylinderGeometry(.022,.028,.60,10),earth,.9,.30,.15);stick.rotation.z=-.12;
   if(index===1){
    const sack=mesh(new THREE.LatheGeometry([new THREE.Vector2(.14,0),new THREE.Vector2(.23,.12),new THREE.Vector2(.22,.32),new THREE.Vector2(.13,.42)],24),new THREE.MeshStandardMaterial({color:'#8e7950',roughness:1,side:THREE.DoubleSide}),1.1,.02,.3);sack.rotation.z=.25;
+   sack.scale.setScalar(1.35);
+   const seep=mesh(new THREE.CircleGeometry(.75,19),new THREE.MeshStandardMaterial({color:'#37291a',roughness:.96,transparent:true,opacity:.65,depthWrite:false}),1,.022,.2);seep.rotation.x=-Math.PI/2;seep.scale.set(1.5,.7,1);
    const opening=mesh(new THREE.CircleGeometry(.12,20),earth,1.0,.43,.3);opening.rotation.x=-Math.PI/2;
    for(let n=0;n<12;n++)mesh(new THREE.IcosahedronGeometry(.018,0),earth,.9+Math.sin(n*2.4)*.25,.025,.25+Math.cos(n*2.4)*.25);
   }
