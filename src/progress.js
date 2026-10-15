@@ -7,7 +7,7 @@ export function sanitizeProgress(v){
  if(p.evidence)p.barriers=indices(v?.barriers,2);
  if(p.barriers.length===2){p.soils=indices(v?.soils,3);if(!p.soils.includes(0))p.soils=[];else if(!p.soils.includes(1))p.soils=[0];}
  p.ritual=p.soils.length===3&&v?.ritual===true;p.reflection=p.ritual&&v?.reflection===true;p.legacyCompleted=v?.legacyCompleted===true&&p.reflection;
- if(Array.isArray(v?.position)&&v.position.length===2&&v.position.every(x=>Number.isFinite(x)&&Math.abs(x)<25))p.position=v.position;
+ if(Array.isArray(v?.position)&&v.position.length===2&&v.position.every(x=>Number.isFinite(x)&&Math.abs(x)<35))p.position=v.position;
  if(v?.drafts&&typeof v.drafts==='object')for(const k of ['evidence','water','cleanup','soil','plants','transfer']){const d=v.drafts[k];if(d&&typeof d==='object'&&JSON.stringify(d).length<5000)p.drafts[k]=d;}
  return p;
 }

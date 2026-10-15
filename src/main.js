@@ -3,6 +3,7 @@ import './workbench.css';
 import './immersive.css';
 import { mountWorkbench } from './workbench.js';
 import { ForestAudio } from './audio.js';
+import {taskBrief,drawJournalMap} from './task-guidance.js';
 import { template } from './ui.js';
 import { freshProgress,loadProgress,saveProgress,progressPercent,stageOf,canUnlock } from './progress.js';
 import { stages,chapters,observations,films } from './content.js';
@@ -16,6 +17,7 @@ try{const s=JSON.parse(storage.getItem('floraverse.settings'));if(['low','balanc
 const forestAudio=new ForestAudio();
 let disposeBench=null;
 let worldPromise=null,menuFrame=0;
+let qaRestorationPreview=false;
 let world=null,mode='menu',busy=false,scan=false,drag=false,held=0,nearest=null,lastTarget='',time=0,last=performance.now(),lastHud=0,frames=0,fps=0,fpsTimer=0,filmDone=null;
 const keys=new Set();
 document.body.classList.toggle('reduced-motion',settings.reduced);
@@ -76,10 +78,10 @@ function playFilm(key,done){
 function finishFilm(){if(!filmDone)return;const done=filmDone;filmDone=null;$('#story-video').pause();$('#story-video').removeAttribute('src');$('#story-video').load();$('#cinematic').hidden=true;clearInput();done();}
 $('#story-video').onended=finishFilm;$('#story-video').onerror=()=>{if(!filmDone)return;$('#story-video').hidden=true;$('#film-fallback').hidden=false;$('#film-status').textContent='影片無法載入，可繼續旅程。';};$('#film-continue').onclick=finishFilm;
 function updateHud(){const s=stages[stageOf(progress)];$('#objective-title').textContent=s.title;$('#objective-text').textContent=s.text;$('#stage-label').textContent=s.short;$('#percent').textContent=`${progressPercent(progress)}%`;$('#chapter-progress').value=progressPercent(progress);}
-function milestone(){persist();updateHud();held=0;}
+function milestone(){world?.hint(null);persist();updateHud();held=0;}
 function workbench(kind,complete){
  openDialog('HANDS IN THE FOREST','<div id="fieldwork-root"></div>');
- disposeBench=mountWorkbench($('#fieldwork-root'),kind,progress.drafts[kind],draft=>{progress.drafts[kind]=draft;persist();},()=>{complete();delete progress.drafts[kind];milestone();closeDialog();forestAudio.play('success');if(kind==='transfer')playFilm('chapter1Outro',showHome);else toast('修復已記錄，回到森林觀察這一區的改變。');},type=>forestAudio.play(type));
+ disposeBench=mountWorkbench($('#fieldwork-root'),kind,progress.drafts[kind],draft=>{progress.drafts[kind]=draft;persist();},()=>{complete();delete progress.drafts[kind];milestone();closeDialog();forestAudio.play('success');if(kind==='transfer')playFilm('chapter1Outro',showHome);else toast('修復已記錄。下一步：'+taskBrief(progress).name+'。按 J 查看位置與完成條件。');},type=>forestAudio.play(type));
 }
 function observe(t){
  if(progress.scanned.length===3){workbench('evidence',()=>progress.evidence=true);return;}
@@ -97,7 +99,7 @@ function doAction(t,stage){
  }
  if(stage==='reflect')workbench('transfer',()=>progress.reflection=true);
 }
-$('#journey').onclick=startJourney;$('#show-chapters').onclick=()=>{$('#home').hidden=true;$('#chapter-view').hidden=false;$('#back-home').focus();};$('#back-home').onclick=showHome;$('#brand').onclick=e=>{e.preventDefault();showHome();};$('#loading-back').onclick=showHome;$('#open-settings').onclick=showSettings;$('#sound-toggle').onclick=()=>setSound(!settings.sound);$('#hud-sound').onclick=()=>setSound(!settings.sound);$('#guide-button').onclick=()=>{const s=stages[stageOf(progress)];openDialog('旅途筆記',`<h2>${s.title}</h2><p>${s.text}</p><p>修復 ${progressPercent(progress)}% · ${stageOf(progress)==='survey'?'樣本 '+progress.scanned.length+' / 3':s.short}</p><ol class=help-list><li>尋找池岸三處樣本瓶，靠近後按 E。</li><li>比對證據，再處理破袋旁的污染支流。</li><li>清理池岸垃圾、修復裂土與枯萎植株。</li><li>喚醒種子，觀察並驗證修復。</li></ol><p class=muted>按住右鍵可短暫辨識附近的互動地點；WASD 移動、拖曳轉動視角、滾輪縮放、H 操作說明、Esc 設定。</p><button id=journal-codex class='text-button wide'>翻閱生態圖鑑 →</button>`);$('#journal-codex').onclick=codex;};$('#open-codex').onclick=codex;$('#pause-button').onclick=pause;$('#help-button').onclick=help;
+$('#journey').onclick=startJourney;$('#show-chapters').onclick=()=>{$('#home').hidden=true;$('#chapter-view').hidden=false;$('#back-home').focus();};$('#back-home').onclick=showHome;$('#brand').onclick=e=>{e.preventDefault();showHome();};$('#loading-back').onclick=showHome;$('#open-settings').onclick=showSettings;$('#sound-toggle').onclick=()=>setSound(!settings.sound);$('#hud-sound').onclick=()=>setSound(!settings.sound);$('#guide-button').onclick=()=>{const brief=taskBrief(progress);openDialog('旅途筆記 · 目前任務',`<h2>${brief.title}</h2><div class="journal-layout"><div><p class="journal-label">前往哪裡</p><p><strong>${brief.name}</strong><br>${brief.where}</p><p class="journal-label">到達後怎麼做</p><ol class="help-list">${brief.steps.map(step=>`<li>${step}</li>`).join('')}</ol><p class="journal-label">什麼才算完成</p><p>${brief.done}</p></div><div><canvas id="journal-map" width="340" height="300" role="img" aria-label="任務位置示意圖：北在上，藍點為玩家，亮色圈為目前目標"></canvas><p class="muted">北在上 · 藍點是你 · 亮圈是建議目標</p>${brief.target?'<button id="journal-mark" class="primary wide">在森林中標記這個地點</button>':''}</div></div>${brief.stations?`<p class="muted">${brief.stations.map(s=>(s.done?'✓ 已記錄：':'○ 未記錄：')+s.label).join('<br>')}</p>`:''}<details><summary>操作與整章旅程</summary><p class="muted">WASD 移動 · 拖曳轉動視角 · 滾輪縮放 · E 互動 · J 筆記 · Esc 暫停。先比對證據，再處理來源、池岸、坡地與植被，最後喚醒種子及驗證。</p></details><button id="journal-codex" class="text-button wide">翻閱生態圖鑑 →</button>`);drawJournalMap($('#journal-map'),world,brief,progress);if(brief.target)$('#journal-mark').onclick=()=>{world.hint(brief.target);closeDialog();toast('已標記「'+brief.name+'」，靠近後按 E。沒有地面引導線。');};$('#journal-codex').onclick=codex;};$('#open-codex').onclick=codex;$('#pause-button').onclick=pause;$('#help-button').onclick=help;
 $('#open-about').onclick=()=>openDialog('ABOUT FLORAVERSE','<h2>看見自己的成長，<br>也讓世界回應你的存在。</h2><p>《Bloom Story 尋找失落花園》是一場關於生態修復的沉浸旅程，以親自然設計、注意力恢復理論與柔和的自然意象作為創作方向。</p><p>第一章以土壤生態為主題，透過證據比對、水路解謎、近景清理、土壤與植被配置，練習理解行動與環境之間的關係。</p><p class="muted">目前開放第一章鍵鼠體驗。其他章節、攝影機儀式與正式劇情影片仍在製作中。進度儲存在目前瀏覽器，不會跨裝置同步。</p>');
 window.addEventListener('keydown',e=>{
   if(mode!=='playing')return;
@@ -122,7 +124,7 @@ canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();clearInput();t
 function tick(now){requestAnimationFrame(tick);const realDt=(now-last)/1000,dt=Math.min(realDt,.05);last=now;if(document.hidden||!world||mode==='lost'){forestAudio.update(false,world?.player.position??{x:0,z:0});return;}
   if(mode==='menu'&&now-menuFrame<33)return;menuFrame=now;
   time+=dt;const active=mode==='playing'&&!$('#dialog').open;forestAudio.update(active,world.player.position,progress.soils.length/3);const stage=stageOf(progress);
-  try{world.update(dt,time,keys,active,progress,stage,scan,settings.reduced);}catch(error){console.error(error);clearInput();persist();mode='lost';$('#hud').hidden=true;$('#loading').hidden=false;$('#loading-text').textContent='場景繪製中斷。進度已保存，請重新整理頁面後選擇「流暢」畫質。';$('#loading-back').hidden=false;return;}
+  try{world.update(dt,time,keys,active,import.meta.env.DEV&&qaRestorationPreview?{...progress,barriers:[0,1],soils:[0,1,2],ritual:true}:progress,stage,scan,settings.reduced);}catch(error){console.error(error);clearInput();persist();mode='lost';$('#hud').hidden=true;$('#loading').hidden=false;$('#loading-text').textContent='場景繪製中斷。進度已保存，請重新整理頁面後選擇「流暢」畫質。';$('#loading-back').hidden=false;return;}
   frames++;fpsTimer+=realDt;if(fpsTimer>1){fps=Math.round(frames/fpsTimer);frames=0;fpsTimer=0;}
   $('#scan-overlay').hidden=!(scan&&active);
   if(!active){$('#interaction').hidden=true;return;}
@@ -131,7 +133,7 @@ function tick(now){requestAnimationFrame(tick);const realDt=(now-last)/1000,dt=M
   if(nearest&&nearest.distance>=1.8&&targets.length){const t=targets[0];nearest={...t,distance:Math.hypot(t.position.x-world.player.position.x,t.position.z-world.player.position.z)};}
   const id=nearest?nearest.type+nearest.index:'';if(id!==lastTarget){held=0;lastTarget=id;}
   const near=nearest&&nearest.distance<1.8;$('#interaction').hidden=!near;
-  if(near){$('#target-label').textContent=nearest.label;$('#interaction-text').textContent=stage==='survey'?(progress.scanned.length===3?'按 E · 比對證據':'按 E · 收集樣本'):stages[stage].action;$('#hold-progress').hidden=stages[stage].duration===0;
+  if(near){$('#target-label').textContent=nearest.label;$('#interaction-text').textContent=stage==='survey'?(progress.scanned.length===3?'按 E · 比對證據':'按 E · 收集樣本'):'按 E · '+taskBrief(progress).name;$('#hold-progress').hidden=stages[stage].duration===0;
     if(stages[stage].duration>0&&keys.has('KeyE')&&(stage!=='survey'||scan)){
       held+=dt;$('#hold-progress').value=held/stages[stage].duration;if(stage==='isolate')world.rockProgress(nearest,held/stages[stage].duration);
       if(held>=stages[stage].duration)doAction(nearest,stage);
@@ -153,4 +155,5 @@ if(import.meta.env.DEV&&qaMode){
  const button=document.createElement('button');button.textContent='測試專用：移至下一互動點';button.style.cssText='position:fixed;bottom:65px;right:24px;z-index:50;padding:12px;background:#d4ddae;color:#182b1c;border:0;border-radius:6px';
  button.onclick=()=>{if(!world||mode!=='playing'||$('#dialog').open)return;const t=world.activeTargets(stageOf(progress),progress)[0];if(t){world.teleport([t.position.x,t.position.z]);clearInput();}};
  document.body.append(button);
+ const previewButton=document.createElement('button');previewButton.textContent='測試專用：復甦前後預覽';previewButton.style.cssText='position:fixed;right:24px;bottom:115px;z-index:50;padding:12px';previewButton.onclick=()=>{qaRestorationPreview=!qaRestorationPreview;};document.body.append(previewButton);
 }
