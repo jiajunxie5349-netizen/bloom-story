@@ -1,3 +1,5 @@
+import {mapLayout} from '../src/map-config.js';
+import {taskBrief} from '../src/task-guidance.js';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {freshProgress,sanitizeProgress,stageOf,progressPercent,canUnlock,loadProgress,saveProgress} from '../src/progress.js';
@@ -26,11 +28,11 @@ const items=Object.fromEntries(specimens.map(i=>[i.id,i.destination]));assert.eq
 const zones={A:'cover',B:'plant',C:'buffer',D:'keep',E:'isolate'};assert.equal(checkPuzzle('soil',{zones}).ok,true);assert.equal(checkPuzzle('soil',{zones:{...zones,E:'cover'}}).ok,false);
 assert.equal(checkPuzzle('plants',{zones:{shade:'shade',slope:'slope',shore:'shore'},habitat:true}).ok,true);assert.equal(checkPuzzle('plants',{zones:{shade:'shore',slope:'slope',shore:'shade'},habitat:true}).ok,false);
 assert.equal(checkPuzzle('transfer',{order:['observe','source','restore','monitor'],reason:'data'}).ok,true);assert.equal(checkPuzzle('transfer',{order:['restore','observe','source','monitor'],reason:'data'}).ok,false);
-const t=new Terrain(JSON.parse(fs.readFileSync(new URL('../public/models/terrain.json',import.meta.url))),JSON.parse(fs.readFileSync(new URL('../public/models/collisions.json',import.meta.url))));t.connect(0,5);
+const t=new Terrain(JSON.parse(fs.readFileSync(new URL('../public/models/terrain.json',import.meta.url))),JSON.parse(fs.readFileSync(new URL('../public/models/collisions.json',import.meta.url))));t.connect(...mapLayout.spawn);
 assert(t.safe.size>1000);
-const taskPoints=[[7,4],[10,-4],[-7,9],[8,0],[5,9],[11,6],[-6,11],[0,13],[0,8]];
+const taskPoints=mapLayout.sites.map(s=>[s.x,s.z]);
 // Verify actual traversability with the controller's footprint and interpolated height.
-const start=t.index(...t.nearest(0,5)),parents=new Map([[start,-1]]),q=[start];
+const start=t.index(...t.nearest(...mapLayout.spawn)),parents=new Map([[start,-1]]),q=[start];
 for(let k=0;k<q.length;k++){
  const i=q[k],[x,z]=t.coordinates(i),y=t.height(x,z);
  for(const [a,b] of [[.25,0],[-.25,0],[0,.25],[0,-.25]]){
@@ -43,11 +45,13 @@ for(let k=0;k<q.length;k++){
 for(const [x,z] of taskPoints){const point=t.nearest(x,z),i=t.index(...point);assert(parents.has(i),`unreachable task ${x},${z} -> ${point}`);}
 assert.equal(t.canMove(100,100,0),false);
 assert(t.blocked.size>100);for(const i of t.blocked){const [x,z]=t.coordinates(i);assert.equal(t.canMove(x,z,t.raw(x,z)),false);}
-for(const [x,z] of taskPoints){const path=t.pathTo(...t.nearest(0,5),...t.nearest(x,z));assert(path.length>0,'missing guide route');assert(path.every(([a,y,b])=>t.canMove(a,b,y)));}
-const [ox,oz]=t.nearest(0,5),oy=t.height(ox,oz);assert(t.canMove(ox,oz,oy));t.obstacles.push({x:ox,z:oz,radius:.45});assert.equal(t.canMove(ox,oz,oy),false);assert.notDeepEqual(t.nearest(ox,oz),[ox,oz]);t.obstacles.pop();assert(t.canMove(ox,oz,oy));
+for(const [x,z] of taskPoints){const path=t.pathTo(...t.nearest(...mapLayout.spawn),...t.nearest(x,z));assert(path.length>0,'missing guide route');assert(path.every(([a,y,b])=>t.canMove(a,b,y)));}
+const [ox,oz]=t.nearest(...mapLayout.spawn),oy=t.height(ox,oz);assert(t.canMove(ox,oz,oy));t.obstacles.push({x:ox,z:oz,radius:.45});assert.equal(t.canMove(ox,oz,oy),false);assert.notDeepEqual(t.nearest(ox,oz),[ox,oz]);t.obstacles.pop();assert(t.canMove(ox,oz,oy));
 console.log(`PASS progress sequence, 80% gating, save corruption, unavailable storage, ${taskPoints.length} walkable task routes (${parents.size} cells)`);
 
 // The real scene places two solid props at each stone gate after choosing safe task positions.
-const scenePoints=taskPoints.map(([x,z],i)=>{const point=t.nearest(x,z);if(i===3||i===4)t.obstacles.push({x:point[0]+.9,z:point[1]+.1,radius:.43},{x:point[0]+1.4,z:point[1]-.5,radius:.23});return point;});
-for(const [x,z] of scenePoints)assert(t.pathTo(0,5,x,z).length>0,`gate prop obstructs task ${x},${z}`);
+const scenePoints=taskPoints.map(([x,z],i)=>{const point=t.nearest(x,z);if(i===3)t.obstacles.push({x:point[0]+.9,z:point[1]+.1,radius:.43});return point;});
+for(const [x,z] of scenePoints)assert(t.pathTo(...mapLayout.spawn,x,z).length>0,`gate prop obstructs task ${x},${z}`);
 
+
+const guidance=freshProgress();assert.equal(taskBrief(guidance).target.index,0);guidance.scanned=[0];assert.equal(taskBrief(guidance).target.index,1);guidance.scanned=[0,2];assert.equal(taskBrief(guidance).target.index,1);guidance.scanned=[0,1,2];assert.equal(taskBrief(guidance).target.index,2);guidance.evidence=true;assert.equal(taskBrief(guidance).target.type,'isolate');guidance.barriers=[0,1];for(let i=0;i<3;i++){assert.equal(taskBrief(guidance).target.index,i);assert(taskBrief(guidance).steps.some(s=>s.includes('完成')));guidance.soils.push(i);}assert.equal(taskBrief(guidance).stage,'ritual');guidance.ritual=true;assert.equal(taskBrief(guidance).stage,'reflect');guidance.reflection=true;assert.equal(taskBrief(guidance).target,null);assert(t.safe.size>6000,'expanded terrain should retain substantially more navigable space');
