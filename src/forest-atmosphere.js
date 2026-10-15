@@ -17,7 +17,7 @@ export function addForestAtmosphere(scene,random){
  const branch=new THREE.InstancedMesh(new THREE.CylinderGeometry(.06,.16,1,7),bark,315);group.add(branch);
  const dummy=new THREE.Object3D();let fi=0,bi=0;
  for(let i=0;i<105;i++){
-  const a=i*2.39996,r=23+random()*25,x=Math.sin(a)*r,z=Math.cos(a)*r,h=10+random()*13;
+  const a=i*2.39996,r=33+random()*27,x=Math.sin(a)*r,z=Math.cos(a)*r,h=10+random()*13;
   dummy.position.set(x,h*.5-3,z);dummy.rotation.set(.02,random()*6,.04);dummy.scale.set(1+random(),h,1+random());dummy.updateMatrix();trunk.setMatrixAt(i,dummy.matrix);
   for(let j=0;j<3;j++){
    const b=a+j*2.1+random()*.6,len=3+random()*3,y=h*.55+j*1.5-3;
@@ -30,5 +30,5 @@ export function addForestAtmosphere(scene,random){
  foliage.count=fi;
  // Low banks close the gap between the land's edge and tree trunks.
  const bank=new THREE.Mesh(new THREE.CylinderGeometry(65,65,5,96,1,true),new THREE.MeshStandardMaterial({color:'#354334',roughness:1,side:THREE.BackSide}));bank.position.y=-4;group.add(bank);
- return {update(restoration,quality){sky.material.uniforms.warmth.value=restoration*.65;foliage.count=quality==='low'?Math.floor(fi*.65):fi;}};
+ return {update(restoration,quality){sky.material.uniforms.warmth.value=restoration*.85;leaves.color.setHSL(.10+restoration*.13,.15+restoration*.13,.38+restoration*.13);foliage.count=quality==='low'?Math.floor(fi*.65):fi;}};
 }

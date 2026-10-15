@@ -12,7 +12,7 @@ export class Terrain {
       const i=queue[k], [px,pz]=this.coordinates(i);
       for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]) {
         const nx=px+dx*this.step,nz=pz+dz*this.step,j=this.index(nx,nz);
-        if(j<0||this.blocked.has(j)||this.reachable.has(j)||Math.hypot(nx,nz)>18||this.heights[j]==null||this.heights[j]<-2.45||Math.abs(this.heights[j]-this.heights[i])>.24) continue;
+        if(j<0||this.blocked.has(j)||this.reachable.has(j)||Math.hypot(nx,nz)>(this.radius??18)||this.heights[j]==null||this.heights[j]<-2.45||Math.abs(this.heights[j]-this.heights[i])>.24) continue;
         this.reachable.add(j);queue.push(j);
       }
     }

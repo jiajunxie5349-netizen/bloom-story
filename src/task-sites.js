@@ -5,8 +5,10 @@ export function createTaskSite(type,index,label){
  function bottle(x,z,s=1){const o=mesh(new THREE.CylinderGeometry(.065,.085,.28,16),plastic,x,.16*s,z);o.scale.setScalar(s);mesh(new THREE.CylinderGeometry(.027,.04,.07,12),bronze,x,.33*s,z);return o;}
  let focus,rock=null,radius=0;
  if(type==='survey'){
-  mesh(new THREE.SphereGeometry(.22,12,8),earth,.55,.045,0).scale.set(1,.25,.8);
-  focus=bottle(.72,.05,.8);bottle(.47,-.16,.65);
+
+  focus=bottle(.72,.05,1.2);
+  const board=mesh(new THREE.BoxGeometry(.36,.26,.035),earth,.9,.63,.15);
+  const labelCanvas=document.createElement('canvas');labelCanvas.width=128;labelCanvas.height=96;const lc=labelCanvas.getContext('2d');lc.fillStyle='#5b4931';lc.fillRect(0,0,128,96);lc.fillStyle='#e8d9b5';lc.font='bold 64px Georgia';lc.textAlign='center';lc.fillText('ABC'[index],64,72);const lm=new THREE.CanvasTexture(labelCanvas);lm.colorSpace=THREE.SRGBColorSpace;board.material=new THREE.MeshStandardMaterial({map:lm,roughness:1});
   const stick=mesh(new THREE.CylinderGeometry(.018,.023,.45,8),earth,.9,.22,.15);stick.rotation.z=-.12;
   if(index===1){
    const sack=mesh(new THREE.LatheGeometry([new THREE.Vector2(.14,0),new THREE.Vector2(.23,.12),new THREE.Vector2(.22,.32),new THREE.Vector2(.13,.42)],24),new THREE.MeshStandardMaterial({color:'#8e7950',roughness:1,side:THREE.DoubleSide}),1.1,.02,.3);sack.rotation.z=.25;
@@ -16,15 +18,15 @@ export function createTaskSite(type,index,label){
  }
  if(type==='isolate'){
   rock=mesh(new THREE.IcosahedronGeometry(.42,2),new THREE.MeshStandardMaterial({color:'#55584b',roughness:.94}),.9,.32,.1);rock.scale.set(1.1,.75,.85);focus=rock;radius=.43;
-  const barrel=mesh(new THREE.CylinderGeometry(.19,.22,.48,16),new THREE.MeshStandardMaterial({color:'#79553b',roughness:.8,metalness:.15}),1.4,.24,-.5);barrel.rotation.z=.3;
-  const stain=mesh(new THREE.CircleGeometry(.55,32),new THREE.MeshBasicMaterial({color:'#553952',transparent:true,opacity:.4,depthWrite:false}),1.3,.025,-.3);stain.rotation.x=-Math.PI/2;
+
+  const stain=mesh(new THREE.PlaneGeometry(2.4,.35,8,2),new THREE.MeshBasicMaterial({color:'#4a3425',transparent:true,opacity:.4,depthWrite:false}),1.3,.025,-.3);stain.rotation.x=-Math.PI/2;
  }
  if(type==='soil'&&index===0){
   focus=bottle(.7,.1,1.2);const b=bottle(.3,-.3,1);b.rotation.z=1.1;
   for(let i=0;i<6;i++){const trash=mesh(new THREE.PlaneGeometry(.15,.23),new THREE.MeshStandardMaterial({color:i%2?'#817454':'#78948a',side:THREE.DoubleSide,roughness:.9}),.3+Math.cos(i)*.4,.06,Math.sin(i)*.4);trash.rotation.set(-1.4,.2,i);}
  }
  if(type==='soil'&&index===1){
-  const canvas=document.createElement('canvas');canvas.width=canvas.height=256;const c=canvas.getContext('2d');c.fillStyle='#433025';c.beginPath();c.arc(128,128,124,0,6.28);c.fill();c.strokeStyle='#201913';c.lineWidth=4;
+  const canvas=document.createElement('canvas');canvas.width=canvas.height=256;const c=canvas.getContext('2d');c.fillStyle='#433025';c.beginPath();for(let i=0;i<18;i++){const a=i/18*6.28,r=100+Math.sin(i*2.4)*16;c.lineTo(128+Math.cos(a)*r,128+Math.sin(a)*r);}c.closePath();c.fill();c.strokeStyle='#292117';c.lineWidth=2;
   for(let i=0;i<18;i++){const a=i*2.4;c.beginPath();c.moveTo(128+Math.cos(a)*15,128+Math.sin(a)*15);c.lineTo(128+Math.cos(a+.2)*65,128+Math.sin(a+.2)*65);c.lineTo(128+Math.cos(a)*125,128+Math.sin(a)*125);c.stroke();}
   const map=new THREE.CanvasTexture(canvas);map.colorSpace=THREE.SRGBColorSpace;focus=mesh(new THREE.PlaneGeometry(1.2,1.2),new THREE.MeshStandardMaterial({map,transparent:true,depthWrite:false,roughness:1}),.7,.035,0);focus.rotation.x=-Math.PI/2;
  }

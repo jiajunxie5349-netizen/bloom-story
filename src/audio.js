@@ -24,7 +24,7 @@ export class ForestAudio{
   src.onended=()=>{src.disconnect();g.disconnect();};src.start(t,noisy?Math.random()*2:undefined);src.stop(t+duration+.01);
  }
  update(active,p,restoration=0){
-  if(this.context){const t=this.context.currentTime;this.wind.setTargetAtTime(active?.18+restoration*.035:0,t,.4);this.water.setTargetAtTime(active?Math.max(0,1-Math.hypot(p.x,p.z)/15)*.24:0,t,.4);}
+  if(this.context){const t=this.context.currentTime;this.wind.setTargetAtTime(active?.18+restoration*.035:0,t,.4);this.water.setTargetAtTime(active?Math.max(0,1-Math.hypot(p.x,p.z)/22.5)*.24:0,t,.4);}
   if(!active){this.last=null;return;}
   if(this.last){const d=Math.hypot(p.x-this.last.x,p.z-this.last.z);if(d<1)this.steps+=d;if(this.steps>.9){this.steps=0;this.play('rustle');}}
   this.last={x:p.x,z:p.z};
