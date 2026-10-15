@@ -1,0 +1,26 @@
+/* The forest is the interface. Permanent controls occupy one quiet corner. */
+#hud .objective,#hud .controls,#hud #wayfinder,#hud #hud-sound,#hud #pause-button{display:none!important}
+#hud .hud-top{inset:auto auto 28px 28px;display:block}
+#hud .hud-actions{display:block}
+.journal-leaf{pointer-events:auto;display:flex;gap:9px;align-items:center;border:0!important;background:linear-gradient(110deg,#102b25d9,transparent);padding:8px 20px 8px 9px!important;color:#e0e7c6;filter:drop-shadow(0 2px 7px #071b12);font-size:12px!important;border-radius:70% 12% 65% 15%}
+.journal-leaf>span{font:40px Georgia;display:block;transform:rotate(-20deg);color:#b9c990}
+.journal-leaf small{font-size:12px;letter-spacing:.12em}.journal-leaf kbd{font-size:9px;opacity:.5;border:0}
+.journal-leaf:hover{color:#fff2ca;transform:translateY(-2px)}
+#interaction{bottom:34px!important;border:0!important;background:linear-gradient(90deg,transparent,#10251bc9,transparent)!important;box-shadow:none!important;backdrop-filter:blur(2px);padding:10px 24px!important;min-width:0;border-radius:50%;max-width:300px}
+#interaction>span{font-size:11px;margin-bottom:5px}#interaction strong{font-size:14px!important;letter-spacing:.12em}
+#menu.has-world{background:transparent}.has-world .landscape{opacity:0;pointer-events:none}
+.home-vignette{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,#071913e8 0%,#0c201b99 35%,transparent 74%),linear-gradient(0deg,#081914cc,transparent 30%,#08191440);z-index:0}
+.home-view{align-items:flex-start;text-align:left;padding:3vh 0 5vh 9vw;min-height:calc(100svh - 160px)}
+.home-view h1{font-size:clamp(80px,9vw,140px);line-height:.82;margin:28px 0 24px;letter-spacing:-.065em;text-shadow:0 4px 35px #07191488}
+.home-view h1 em{padding-left:.45em;color:#d3d8b4}.home-chapter{font-size:9px;letter-spacing:.35em;color:#a6b58b;margin-top:22px}
+.home-view>.eyebrow{font-size:10px;letter-spacing:.12em}.home-view>.eyebrow span{display:none}.home-view:before,.home-view:after{display:none}
+.subtitle{font-size:15px;padding:0;letter-spacing:.4em}.intro{margin:22px 0;color:#bfccba;font-size:12px}.home-note{margin-top:22px}
+.menu-actions{max-width:370px;gap:28px;justify-content:flex-start}.menu-actions button{flex:none;border:0;border-radius:0;box-shadow:none;background:transparent;padding:12px 0;min-width:145px;color:#e6eacb;border-bottom:1px solid #b8c89a66;font-size:14px}
+.menu-actions .primary:hover{background:transparent;box-shadow:none;color:#fff4c8;border-color:#ebd6a0}.menu-actions .glass{backdrop-filter:none;color:#b2c2ad;font-size:12px;min-width:110px}
+.minor-actions{gap:18px;margin-top:12px}.minor-actions button{padding:8px 0;font-size:11px}.masthead{border:0;height:88px}.menu-footer{border:0;height:72px}.edition{color:#c1cbb0}
+.chapter-card{border:0;border-radius:60% 60% 8px 8px;box-shadow:none;background:#14291c44}.card-art{height:210px}.card-art:after{display:none}.card-caption{border-top:1px solid #b7ca9133}.card-status{background:#091e1c70}
+dialog{border:0;background:radial-gradient(ellipse at 0 0,#3b4a31,#172e25 55%,#0e211b);border-radius:32px 8px 30px 10px;box-shadow:0 30px 130px #0009}
+dialog .glass{border:0;border-bottom:1px solid #9bae753f;border-radius:0;background:transparent;backdrop-filter:none}dialog .primary{border-radius:50px 10px 50px 12px;box-shadow:none}
+@media(max-width:750px){.home-view{padding-left:8vw;padding-right:6vw}.home-view h1{font-size:90px}.home-view>.eyebrow{font-size:9px}.home-vignette{background:linear-gradient(90deg,#071913de,#0c201b88 65%,#0c201b33)}.card-art{height:160px}#hud .hud-top{left:16px;bottom:20px}.journal-leaf small{font-size:11px}.home-note{max-width:none;justify-content:flex-start}.home-note span{margin-left:0}}
+@media(prefers-reduced-motion:reduce){.journal-leaf:hover{transform:none}}
+@media(max-height:800px) and (min-width:751px){.masthead{height:72px}.menu-footer{height:45px}.home-view{min-height:calc(100svh - 117px);padding-top:0;padding-bottom:20px}.home-view h1{font-size:clamp(72px,8vw,108px);margin:20px 0}.home-chapter{margin-top:12px}.intro{margin:16px 0}.home-note{margin-top:14px}.minor-actions{margin-top:6px}}

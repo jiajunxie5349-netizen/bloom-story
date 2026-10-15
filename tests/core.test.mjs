@@ -47,3 +47,7 @@ for(const [x,z] of taskPoints){const path=t.pathTo(...t.nearest(0,5),...t.neares
 const [ox,oz]=t.nearest(0,5),oy=t.height(ox,oz);assert(t.canMove(ox,oz,oy));t.obstacles.push({x:ox,z:oz,radius:.45});assert.equal(t.canMove(ox,oz,oy),false);assert.notDeepEqual(t.nearest(ox,oz),[ox,oz]);t.obstacles.pop();assert(t.canMove(ox,oz,oy));
 console.log(`PASS progress sequence, 80% gating, save corruption, unavailable storage, ${taskPoints.length} walkable task routes (${parents.size} cells)`);
 
+// The real scene places two solid props at each stone gate after choosing safe task positions.
+const scenePoints=taskPoints.map(([x,z],i)=>{const point=t.nearest(x,z);if(i===3||i===4)t.obstacles.push({x:point[0]+.9,z:point[1]+.1,radius:.43},{x:point[0]+1.4,z:point[1]-.5,radius:.23});return point;});
+for(const [x,z] of scenePoints)assert(t.pathTo(0,5,x,z).length>0,`gate prop obstructs task ${x},${z}`);
+

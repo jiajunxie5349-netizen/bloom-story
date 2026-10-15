@@ -3,4 +3,10 @@ dialog:has(.workbench){width:min(1080px,94vw);max-width:1080px;padding:24px 32px
 @media(max-width:650px){dialog:has(.workbench){padding:15px}.bench-scene{padding:12px}.sample-grid,.litter-bed{grid-template-columns:repeat(2,1fr)}.soil-cross-section{grid-template-columns:repeat(2,1fr);gap:10px}.soil-zone{transform:none}.plant-biomes{gap:7px}.biome-slot{padding:16px 5px}.water-lanes{grid-template-columns:1fr}.bench-heading h2{font-size:22px}}
 @media(prefers-reduced-motion:reduce){.bench-hand{transition:none}}
 
+dialog:has(.workbench){background:radial-gradient(ellipse at top,#304032,#10251ff5 65%);border-radius:28px 8px 28px 8px;border:0}
+.bench-scene{border:0;border-radius:30px 8px 30px 8px;background:radial-gradient(ellipse at 50% 30%,#4b523333,#0b181590)}
+.bench-choice{border-radius:20px 5px 20px 5px;background:#2a3c2c88;border-color:#b0be8540}
+.bench-hands{opacity:.9;filter:drop-shadow(0 3px 16px #b7cf7d44)}
+.sample{border-radius:35% 35% 12px 12px;background:linear-gradient(#344735aa,#14261d)}
+
 .rain-result{display:flex;gap:14px;justify-content:space-between;flex-wrap:wrap;border-top:1px solid #77998a77;padding:20px 8px 5px;color:#a9d6d4;font-size:13px}.tested .soil-cross-section{background:repeating-linear-gradient(110deg,transparent 0 23px,#92b9cc26 24px 25px,transparent 26px 46px)}
