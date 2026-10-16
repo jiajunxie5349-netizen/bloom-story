@@ -25,7 +25,7 @@ export function drawJournalMap(canvas,world,brief,p){
  const c=canvas.getContext('2d'),w=canvas.width,h=canvas.height,t=world.terrain,pad=20,extent=72;
  const point=(x,z)=>[pad+(x+36)/extent*(w-pad*2),pad+(z+36)/extent*(h-pad*2)];
  c.fillStyle='#13241d';c.fillRect(0,0,w,h);
- const [cx,cy]=point(0,0);c.fillStyle='#395955';c.beginPath();c.ellipse(cx,cy,(w-pad*2)*34/extent,(h-pad*2)*34/extent,0,0,6.28);c.fill();
+ const [cx,cy]=point(0,0);c.fillStyle='#395955';c.beginPath();c.ellipse(cx,cy,(w-pad*2)*t.radius/extent,(h-pad*2)*t.radius/extent,0,0,6.28);c.fill();
  for(let iz=0;iz<t.size;iz+=2)for(let ix=0;ix<t.size;ix+=2){const y=t.heights[iz*t.size+ix];if(y==null)continue;const x=t.min+ix*t.step,z=t.min+iz*t.step;if(Math.hypot(x,z)>t.radius)continue;const [a,b]=point(x,z);c.fillStyle=y<-2.45?'#486460':'#76694b';c.fillRect(a,b,(w-pad*2)*.5/extent+1,(h-pad*2)*.5/extent+1);}
  c.font='12px "Microsoft JhengHei",sans-serif';c.textAlign='center';c.fillStyle='#cad7ba';c.fillText('北 N',w/2,14);
  c.strokeStyle='#c5b88970';c.lineWidth=2;c.beginPath();c.ellipse(cx,cy,(w-pad*2)*30/extent,(h-pad*2)*30/extent,0,0,Math.PI*2);c.stroke();

@@ -2,6 +2,7 @@ import './style.css';
 import './workbench.css';
 import './immersive.css';
 import './journey.css';
+import {loadGarden,gardenPercent} from './garden-data.js';
 import {learning,tour} from './learning.js';
 import {nearestInteraction,interactionRange} from './interaction.js';
 import { mountWorkbench } from './workbench.js';
@@ -31,12 +32,19 @@ function persist(){if(world)progress.position=[world.player.position.x,world.pla
 function hasJourney(){return progress.position!==null||progress.scanned.length>0||progress.evidence;}
 function updateMenu(){const n=progressPercent(progress);$('#journey').innerHTML=(hasJourney()?'繼續旅程':'開始旅程')+' <span>↗</span>';renderChapters();}
 function renderChapters(){
-  $('#chapter-grid').innerHTML=chapters.map((c,i)=>{
-    const unlocked=i===1||(i===2&&canUnlock(progress));
-    const status=c.ready?(progressPercent(progress)?`修復 ${progressPercent(progress)}%`:'可開始旅程'):i===0?'開發中':unlocked?'已解鎖 · 開發中':'未解鎖 · 開發中';
-    return `<button class="chapter-card ${c.biome} ${!c.ready?'unavailable':''}" data-chapter="${i}" ${!c.ready?'aria-disabled="true"':''}><div class="card-art"><span class="card-number">${c.n}</span><span class="card-symbol">${c.icon}</span><span class="card-status">${status}</span><div class="card-hill"></div></div><div class="card-caption"><h3>${c.title}<span>${c.ready?'↗':'○'}</span></h3><p>${c.theme}</p></div></button>`;
-  }).join('');
-  document.querySelectorAll('[data-chapter]').forEach(el=>el.onclick=()=>Number(el.dataset.chapter)===1?startJourney():toast(Number(el.dataset.chapter)===2&&canUnlock(progress)?'光之花園已解鎖，關卡仍在製作中。':'這段旅程仍在製作中，先從種子森林開始吧。'));
+ const second=loadGarden(storage);
+ $('#chapter-grid').innerHTML=chapters.map((c,i)=>{
+  const available=i===1||(i===2&&canUnlock(progress));
+  const status=i===1?`修復 ${progressPercent(progress)}%`:i===2?(available?`修復 ${gardenPercent(second)}% · 初版體驗`:'第一章 80% 並喚醒種子後解鎖'):'開發中';
+  return `<div class="chapter-entry"><button class="chapter-card ${c.biome} ${!available?'unavailable':''}" data-chapter="${i}" ${!available?'aria-disabled="true"':''}><div class="card-art"><span class="card-number">${c.n}</span><span class="card-symbol">${c.icon}</span><span class="card-status">${status}</span><div class="card-hill"></div></div><div class="card-caption"><h3>${c.title}<span>${available?'↗':'○'}</span></h3><p>${c.theme}</p></div></button>${i===2?'<button id="garden-preview" class="text-button wide">先看看光之花園 · 不保存進度 ↗</button>':''}</div>`;
+ }).join('');
+ document.querySelectorAll('[data-chapter]').forEach(el=>el.onclick=()=>{const i=Number(el.dataset.chapter);if(i===1)startJourney();else if(i===2&&canUnlock(progress))startGarden(false);else toast(i===2?'先在種子森林達到 80% 並喚醒種子；也可先預覽溫室場景。':'這段旅程仍在製作中。');});
+ $('#garden-preview').onclick=()=>startGarden(true);
+}
+async function startGarden(preview=false,test=false){
+ if(busy||(!preview&&!test&&!canUnlock(progress)))return;
+ busy=true;clearInput();closeDialog();if(world&&mode==='playing')persist();mode='chapter2';$('#menu').hidden=true;$('#hud').hidden=true;$('#webgl-canvas').style.visibility='hidden';forestAudio.update(false,{x:0,z:0});
+ try{const {enterGarden}=await import('./garden.js');await enterGarden({settings,storage,audio:forestAudio,preview,qa:import.meta.env.DEV&&qaMode,onExit(){busy=false;$('#webgl-canvas').style.visibility='';showHome();}});busy=false;}catch(error){console.error(error);busy=false;$('#webgl-canvas').style.visibility='';showHome();toast('光之花園暫時無法載入，請稍後再試。');}
 }
 function closeDialog(){disposeBench?.();disposeBench=null;$('#dialog').classList.remove('fieldwork','pause-view');world?.present(mode==='menu');if($('#dialog').open)$('#dialog').close();clearInput();}
 function showHome(){mode='menu';clearInput();closeDialog();$('#menu').hidden=false;$('#hud').hidden=true;$('#cinematic').hidden=true;$('#loading').hidden=true;$('#home').hidden=false;$('#chapter-view').hidden=true;$('#webgl-canvas').classList.toggle('active',Boolean(world));world?.present(true);updateMenu();$('#journey').focus();}
@@ -101,12 +109,12 @@ function doAction(t,stage){
  if(stage==='soil')workbench(['cleanup','soil','plants'][t.index],()=>{if(!progress.soils.includes(t.index))progress.soils.push(t.index);});
  if(stage==='ritual'){
   openDialog('A SEED OF HOPE','<h2>用雙手捧起新的希望</h2><p>你已完成五項修復。種子的光是藝術化的回應，真實復育仍需要適當治理與持續監測。</p><div class="ritual-seed" aria-hidden="true">❧</div><button id="awaken-seed" class="primary wide">張開雙手，捧起種子 →</button>');
-  $('#awaken-seed').onclick=()=>{progress.ritual=true;milestone();closeDialog();forestAudio.play('success');toast('修復達 80% 並完成喚醒。第二章已解鎖，內容仍在製作中；回到種子完成綜合驗證。');};
+  $('#awaken-seed').onclick=()=>{progress.ritual=true;milestone();closeDialog();forestAudio.play('success');toast('修復達 80% 並完成喚醒。第二章光之花園已解鎖；可回主畫面選章，也可留在種子森林完成綜合驗證。');};
  }
  if(stage==='reflect')workbench('transfer',()=>progress.reflection=true);
 }
 $('#open-tutorial').onclick=help;$('#map-toggle').onclick=()=>{const open=$('#mini-panel').hidden;$('#mini-panel').hidden=!open;$('#map-toggle').setAttribute('aria-expanded',String(open));$('#map-toggle').setAttribute('aria-label',open?'收起林間地圖 M':'開啟林間地圖 M');};$('#map-journal').onclick=()=>$('#guide-button').click();$('#interaction').onclick=interact;$('#journey').onclick=startJourney;$('#show-chapters').onclick=()=>{$('#home').hidden=true;$('#chapter-view').hidden=false;$('#back-home').focus();};$('#back-home').onclick=showHome;$('#brand').onclick=e=>{e.preventDefault();showHome();};$('#loading-back').onclick=showHome;$('#open-settings').onclick=showSettings;$('#sound-toggle').onclick=()=>setSound(!settings.sound);$('#hud-sound').onclick=()=>setSound(!settings.sound);$('#guide-button').onclick=()=>{const brief=taskBrief(progress);openDialog('旅途筆記 · 目前任務',`<h2>${brief.title}</h2><div class="journal-layout"><div><p class="journal-label">前往哪裡</p><p><strong>${brief.name}</strong><br>${brief.where}</p><p class="journal-label">到達後怎麼做</p><ol class="help-list">${brief.steps.map(step=>`<li>${step}</li>`).join('')}</ol><p class="journal-label">什麼才算完成</p><p>${brief.done}</p></div><div><canvas id="journal-map" width="340" height="300" role="img" aria-label="任務位置示意圖：北在上，藍點為玩家，亮色圈為目前目標"></canvas><p class="muted">北在上 · 藍點是你 · 亮圈是建議目標</p>${brief.target?'<button id="journal-mark" class="primary wide">在森林中標記這個地點</button>':''}</div></div>${brief.stations?`<p class="muted">${brief.stations.map(s=>(s.done?'✓ 已記錄：':'○ 未記錄：')+s.label).join('<br>')}</p>`:''}<details><summary>操作與整章旅程</summary><p class="muted">WASD 移動 · 拖曳轉動視角 · 滾輪縮放 · E 互動 · J 筆記 · Esc 暫停。先比對證據，再處理來源、池岸、坡地與植被，最後喚醒種子及驗證。</p></details><button id="journal-tutorial" class="text-button wide">新手介紹 · 從頭認識任務 →</button><button id="journal-codex" class="text-button wide">翻閱生態圖鑑 →</button>`);drawJournalMap($('#journal-map'),world,brief,progress);if(brief.target)$('#journal-mark').onclick=()=>{world.hint(brief.target);closeDialog();toast('已標記「'+brief.name+'」，靠近後按 E。沒有地面引導線。');};$('#journal-codex').onclick=codex;$('#journal-tutorial').onclick=help;};$('#open-codex').onclick=codex;$('#pause-button').onclick=pause;$('#help-button').onclick=help;
-$('#open-about').onclick=()=>openDialog('ABOUT FLORAVERSE','<h2>看見自己的成長，<br>也讓世界回應你的存在。</h2><p>《Bloom Story 尋找失落花園》是一場關於生態修復的沉浸旅程，以親自然設計、注意力恢復理論與柔和的自然意象作為創作方向。</p><p>第一章以土壤生態為主題，透過證據比對、水路解謎、近景清理、土壤與植被配置，練習理解行動與環境之間的關係。</p><p class="muted">目前開放第一章鍵鼠體驗。其他章節、攝影機儀式與正式劇情影片仍在製作中。進度儲存在目前瀏覽器，不會跨裝置同步。</p>');
+$('#open-about').onclick=()=>openDialog('ABOUT FLORAVERSE','<h2>看見自己的成長，<br>也讓世界回應你的存在。</h2><p>《Bloom Story 尋找失落花園》是一場關於生態修復的沉浸旅程，以親自然設計、注意力恢復理論與柔和的自然意象作為創作方向。</p><p>第一章以土壤生態為主題，透過證據比對、水路解謎、近景清理、土壤與植被配置，練習理解行動與環境之間的關係。</p><p class="muted">目前開放第一章與第二章鍵鼠初版體驗。後續章節、攝影機儀式與正式劇情影片仍在製作中。進度儲存在目前瀏覽器，不會跨裝置同步。</p>');
 window.addEventListener('keydown',e=>{
   if(mode!=='playing')return;
   if(e.code==='Escape'){if(!$('#dialog').open){e.preventDefault();pause();}return;}
@@ -128,7 +136,7 @@ window.addEventListener('blur',()=>{clearInput();if(mode==='playing'&&!$('#dialo
 document.addEventListener('visibilitychange',()=>{last=performance.now();if(document.hidden){clearInput();if(mode==='playing'&&!$('#dialog').open)pause();}});
 window.addEventListener('resize',()=>world?.resize());window.addEventListener('pagehide',()=>{if(world)persist();});
 canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();clearInput();toast('顯示卡連線中斷。進度已儲存，請重新整理頁面。');persist();mode='lost';});
-function tick(now){requestAnimationFrame(tick);const realDt=(now-last)/1000,dt=Math.min(realDt,.05);last=now;if(document.hidden||!world||mode==='lost'){forestAudio.update(false,world?.player.position??{x:0,z:0});return;}
+function tick(now){requestAnimationFrame(tick);const realDt=(now-last)/1000,dt=Math.min(realDt,.05);last=now;if(mode==='chapter2')return;if(document.hidden||!world||mode==='lost'){forestAudio.update(false,world?.player.position??{x:0,z:0});return;}
   if(mode==='menu'&&now-menuFrame<33)return;menuFrame=now;
   time+=dt;const active=mode==='playing'&&!$('#dialog').open;forestAudio.update(active,world.player.position,progress.soils.length/3);const stage=stageOf(progress);
   if(import.meta.env.DEV&&qaMode&&$('#qa-position'))$('#qa-position').textContent=`位置 ${world.player.position.x.toFixed(2)},${world.player.position.z.toFixed(2)} · 速度 ${settings.speed}`;
@@ -160,6 +168,7 @@ requestAnimationFrame(()=>ensureWorld(true));
 
 // Development-only journey fixture. Removed by Vite from production builds.
 if(import.meta.env.DEV&&qaMode){
+ const gardenTest=document.createElement('button');gardenTest.textContent='測試專用：第二章完整任務';gardenTest.style.cssText='position:fixed;bottom:210px;right:24px;z-index:50;padding:12px';gardenTest.onclick=()=>startGarden(false,true);document.body.append(gardenTest);
  const button=document.createElement('button');button.textContent='測試專用：移至下一互動點';button.style.cssText='position:fixed;bottom:65px;right:24px;z-index:50;padding:12px;background:#d4ddae;color:#182b1c;border:0;border-radius:6px';
  button.onclick=()=>{if(!world||mode!=='playing'||$('#dialog').open)return;const t=world.activeTargets(stageOf(progress),progress)[0];if(t){world.teleport([t.position.x,t.position.z]);clearInput();}};
  document.body.append(button);

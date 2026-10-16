@@ -11,6 +11,7 @@ import { addUnderstory } from './ground-cover.js';
 import { createTaskSite } from './task-sites.js';
 import { addForestAtmosphere } from './forest-atmosphere.js';
 import { mapLayout } from './map-config.js';
+import {breatheGuardian} from './guardian-life.js';
 import {addLivingWorld} from './living-world.js';
 
 export async function createWorld(canvas, settings, onStatus) {
@@ -33,11 +34,11 @@ export async function createWorld(canvas, settings, onStatus) {
   let forest,guardian;
   try {
     onStatus('正在載入森林、守護者與地形…');
-    const [f,g,res,collisionRes]=await Promise.all([loader.loadAsync(base+'models/forest_refined.glb'),loader.loadAsync(base+'models/sprite_guardian_refined.glb'),fetch(base+'models/terrain.json'),fetch(base+'models/collisions.json')]);
+    const [f,g,res,collisionRes,v]=await Promise.all([loader.loadAsync(base+'models/forest_ground_v8.glb'),loader.loadAsync(base+'models/sprite_guardian_refined.glb'),fetch(base+'models/terrain_v8.json'),fetch(base+'models/collisions_v8.json'),loader.loadAsync(base+'models/forest_vegetation_v8.glb')]);
     if(!res.ok||!collisionRes.ok)throw new Error('地形或碰撞資料載入失敗');
     const terrain=new Terrain(await res.json(),await collisionRes.json());terrain.connect(...mapLayout.spawn);
     if(terrain.reachable.size<100)throw new Error('可行走地形不足');
-    forest=f.scene; guardian=g.scene;
+    forest=f.scene;forest.add(v.scene); guardian=g.scene;
     const habitat={value:0},waterTime={value:0},waterHealth={value:0};
     const seasonalMaterials=[];
     const repairs=[0,1,2].map(()=>({value:new THREE.Vector4(0,0,0,0)}));
@@ -54,7 +55,7 @@ export async function createWorld(canvas, settings, onStatus) {
     }
     const shoreCanvas=document.createElement('canvas');shoreCanvas.width=shoreCanvas.height=terrain.size;const shoreContext=shoreCanvas.getContext('2d'),shoreImage=shoreContext.createImageData(terrain.size,terrain.size);
     terrain.heights.forEach((h,i)=>{const v=h==null?0:Math.max(0,Math.min(1,(h+3.05)/.65));shoreImage.data.set([v*255,v*255,v*255,255],i*4);});shoreContext.putImageData(shoreImage,0,0);const shoreMap=new THREE.CanvasTexture(shoreCanvas);shoreMap.flipY=false;
-    worldSurface(waterMaterial,'vec2 wp=vHabitatPosition.xz;float drift=earthNoise(wp*.37+vec2(uWaterTime*.024,-uWaterTime*.015));float wave=sin(wp.x*1.3+wp.y*.7-uWaterTime*.7)+sin(wp.y*1.9-wp.x*.6+uWaterTime*.5);vec3 murky=mix(vec3(.047,.032,.016),vec3(.095,.063,.028),drift);vec3 clean=mix(vec3(.025,.095,.095),vec3(.055,.16,.15),drift);diffuseColor.rgb=mix(murky,clean,uHabitat);float bank=texture2D(uShore,(wp+36.)/72.).r;float foam=smoothstep(.55,.65,bank)*(1.-smoothstep(.72,.85,bank))*(.55+.45*sin(wp.x*5.+wp.y*4.+uWaterTime*.65));diffuseColor.rgb+=mix(vec3(.045,.033,.015),vec3(.10,.13,.10),uHabitat)*foam;diffuseColor.rgb+=vec3(.008,.012,.011)*pow(.5+.5*sin(wave*2.),10.);',{uWaterTime:waterTime,uHabitat:waterHealth,uShore:{value:shoreMap}});
+    worldSurface(waterMaterial,'vec2 wp=vHabitatPosition.xz;float drift=earthNoise(wp*.37+vec2(uWaterTime*.024,-uWaterTime*.015));float wave=sin(wp.x*1.3+wp.y*.7-uWaterTime*.7)+sin(wp.y*1.9-wp.x*.6+uWaterTime*.5);vec3 murky=mix(vec3(.015,.025,.024),vec3(.035,.052,.039),drift);vec3 clean=mix(vec3(.025,.095,.095),vec3(.055,.16,.15),drift);diffuseColor.rgb=mix(murky,clean,uHabitat);float bank=texture2D(uShore,(wp+36.)/72.).r;float foam=smoothstep(.55,.65,bank)*(1.-smoothstep(.72,.85,bank))*(.55+.45*sin(wp.x*5.+wp.y*4.+uWaterTime*.65));diffuseColor.rgb+=mix(vec3(.045,.033,.015),vec3(.10,.13,.10),uHabitat)*foam;diffuseColor.rgb+=vec3(.006,.009,.008)*pow(.5+.5*sin(wp.x*9.+wp.y*3.+uWaterTime*.7+earthNoise(wp*.5)*3.),16.);',{uWaterTime:waterTime,uHabitat:waterHealth,uShore:{value:shoreMap}});
     const shoreCompile=waterMaterial.onBeforeCompile;waterMaterial.onBeforeCompile=shader=>{shoreCompile(shader);shader.fragmentShader='uniform sampler2D uShore;\n'+shader.fragmentShader;};
     const compileWater=waterMaterial.onBeforeCompile;
     waterMaterial.onBeforeCompile=shader=>{compileWater(shader);shader.vertexShader='uniform float uWaterTime;\n'+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ntransformed+=normalize(normal)*(sin(position.x*.9+uWaterTime*.8)+cos(position.y*1.1-uWaterTime*.7))*.035;');shader.fragmentShader=shader.fragmentShader.replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nnormal=normalize(normal+vec3((sin(vHabitatPosition.x*2.3+vHabitatPosition.z*1.7+uWaterTime*.9)+sin(vHabitatPosition.x*1.2-vHabitatPosition.z*2.4+uWaterTime*.65))*.012,0.,(cos(vHabitatPosition.z*1.9+vHabitatPosition.x*1.4-uWaterTime*.7)+sin(vHabitatPosition.z*2.8-vHabitatPosition.x*1.2+uWaterTime*.45))*.012));');};
@@ -76,9 +77,9 @@ export async function createWorld(canvas, settings, onStatus) {
     const leafProfile=[new THREE.Vector2(.04,-.78),new THREE.Vector2(.23,-.57),new THREE.Vector2(.31,-.26),new THREE.Vector2(.34,.05),new THREE.Vector2(.39,.32),new THREE.Vector2(.29,.63),new THREE.Vector2(.13,.87),new THREE.Vector2(.015,1.09)];
     const leafShell=guardian.getObjectByName('Leaf_Envelope')??new THREE.Mesh(new THREE.LatheGeometry(leafProfile,24,.62,Math.PI*2-1.24),new THREE.MeshStandardMaterial({color:'#8e8052',roughness:.85,side:THREE.DoubleSide}));
     worldSurface(leafShell.material,'float veins=pow(.5+.5*sin(vHabitatPosition.y*18.+sin(vHabitatPosition.x*25.)*1.5),12.);float grain=earthNoise(vHabitatPosition.xz*70.);diffuseColor.rgb*=.74+grain*.28+veins*.14;');if(!leafShell.parent)guardian.add(leafShell);
-    ['Hand_L','Hand_R'].forEach(n=>{const h=guardian.getObjectByName(n);if(h)h.visible=false;});
+    ['Hand_L','Hand_R','Orb_Hand_L','Orb_Hand_R'].forEach(n=>{const h=guardian.getObjectByName(n);if(h)h.visible=false;});
     const hands=[-1,1].map(side=>{const hand=new THREE.Mesh(new THREE.SphereGeometry(.105,24,16),new THREE.MeshStandardMaterial({color:'#c3cd88',roughness:.45,emissive:'#82944a',emissiveIntensity:.2}));hand.position.set(side*.28,.12,.36);guardian.add(hand);return hand;});
-    const capes=['Leaf_Cape_Left','Leaf_Cape_Right','Leaf_Cape_Back','Leaf_Hood_Brim'].map(n=>guardian.getObjectByName(n)).filter(Boolean);
+    const life=breatheGuardian(guardian,hands);
     const core=guardian.getObjectByName('Sprite_Core');if(core)core.position.y=.22;
     const halo=new THREE.Mesh(new THREE.RingGeometry(.34,.40,40),new THREE.MeshBasicMaterial({color:'#cdf6c6',transparent:true,opacity:.7,side:THREE.DoubleSide}));halo.rotation.x=-Math.PI/2;player.add(halo);halo.position.y=.07;halo.visible=false;
     const glow=new THREE.PointLight('#d1e8ad',.5,3);glow.position.y=1.3;player.add(glow);
@@ -105,7 +106,7 @@ export async function createWorld(canvas, settings, onStatus) {
     // Task focus is optional and never draws a route through the forest.
     function guideTo(target){guideTarget=target?targets.find(t=>t.type===target.type&&t.index===target.index):null;return 0;}
     let randomSeed=27;const rand=()=>{randomSeed=(randomSeed*16807)%2147483647;return randomSeed/2147483647;};
-    const atmosphere=addForestAtmosphere(scene,rand);
+    const atmosphere=addForestAtmosphere(scene,rand,groundMaterial,terrain);
     const growth=addUnderstory(scene,terrain,targets.filter(t=>t.type==='soil').map(t=>t.position),rand,targets);
     const dots=new Float32Array(180*3);for(let i=0;i<dots.length;i+=3){dots[i]=(rand()-.5)*32;dots[i+1]=rand()*7;dots[i+2]=(rand()-.5)*32;}
     const glowCanvas=document.createElement('canvas');glowCanvas.width=glowCanvas.height=32;
@@ -149,9 +150,7 @@ export async function createWorld(canvas, settings, onStatus) {
       } else velocity.set(0,0,0);
       if(active&&input.has('Space')&&!jumpHeld&&jumpHeight===0)jumpVelocity=2.25;
       jumpHeld=active&&input.has('Space');if(jumpVelocity||jumpHeight){jumpVelocity-=6.5*dt;jumpHeight=Math.max(0,jumpHeight+jumpVelocity*dt);if(!jumpHeight)jumpVelocity=0;}
-      guardian.position.y=1.1+jumpHeight+(reduced?0:Math.sin(time*1.7)*.085);
-      hands.forEach((hand,i)=>{hand.position.y=.12+(reduced?0:Math.sin(time*1.7+i*.8)*.07);hand.position.z=.36+(reduced?0:Math.sin(time*1.25+i)*.045);hand.position.x=(i?1:-1)*(.28+Math.sin(time*.9+i)*.025);hand.rotation.z=reduced?0:Math.sin(time*1.4+i*.7)*.065;});
-      capes.forEach((cape,i)=>{cape.rotation.x=reduced?0:Math.sin(time*1.2+i*.8)*.018;});
+      life.update(time,dt,velocity,reduced,jumpHeight);
       for(let i=ripples.length-1;i>=0;i--){const r=ripples[i];r.age+=dt;r.ring.scale.setScalar(1+r.age*4);r.ring.material.opacity=Math.max(0,.65-r.age*.6);if(r.age>1.1){scene.remove(r.ring);r.ring.material.dispose();ripples.splice(i,1);}}
       distance=THREE.MathUtils.damp(distance,targetDistance,8,dt);
       look.copy(player.position);look.y+=1.25;
@@ -166,7 +165,7 @@ export async function createWorld(canvas, settings, onStatus) {
       restoration=THREE.MathUtils.damp(restoration,progress.ritual?1:progress.barriers.length*.06+progress.soils.length*.18,1,dt);
       habitat.value=restoration;waterTime.value=reduced?0:time;
       waterMaterial.color.lerpColors(pollutedWater,clearWater,restoration);
-      waterMaterial.emissiveIntensity=0;waterHealth.value=THREE.MathUtils.damp(waterHealth.value,(progress.barriers.length===2?.2:0)+(progress.soils.includes(0)?.35:0)+(progress.soils.includes(1)?.25:0)+(progress.ritual?.2:0),.65,dt);ambient.intensity=.85+restoration*.85;moon.intensity=1.3-restoration*.3;warm.intensity=.25+restoration*2.8;seasonalMaterials.forEach(({material,original})=>material.color.copy(original).multiply(new THREE.Color().lerpColors(new THREE.Color('#95826b'),new THREE.Color('#b9cca1'),restoration)));particles.material.opacity=.12+restoration*.53;scene.fog.color.lerpColors(darkFog,livingFog,restoration*.5);scene.background.copy(scene.fog.color);
+      waterMaterial.emissiveIntensity=0;waterHealth.value=THREE.MathUtils.damp(waterHealth.value,(progress.barriers.length===2?.2:0)+(progress.soils.includes(0)?.35:0)+(progress.soils.includes(1)?.25:0)+(progress.ritual?.2:0),.65,dt);ambient.intensity=.85+restoration*.85;moon.intensity=1.3-restoration*.3;warm.intensity=.25+restoration*2.8;seasonalMaterials.forEach(({material,original})=>material.color.copy(original).multiply(new THREE.Color().lerpColors(new THREE.Color('#95826b'),new THREE.Color(material.name.includes('leaf')?'#8fbd79':'#b9cca1'),restoration)));particles.material.opacity=.12+restoration*.53;scene.fog.color.lerpColors(darkFog,livingFog,restoration*.5);scene.background.copy(scene.fog.color);
       repairs.forEach((r,i)=>{const t=targets.find(t=>t.type==='soil'&&t.index===i);r.value.set(t.position.x,t.position.z,0,THREE.MathUtils.damp(r.value.w,progress.soils.includes(i)?1:0,1.8,dt));});
       atmosphere.update(restoration,quality);
       growth.update(repairs.map(r=>r.value.w),progress.ritual,quality,time,reduced);living.update(time,restoration,progress,reduced);
