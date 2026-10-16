@@ -1,5 +1,5 @@
 // 留空代表尚未匯入影片，使用短文字銜接。路徑相對於 public/。
-export const films = { chapter1Intro: '', chapter1Outro: '', chapter2Intro: '', chapter2Outro: '' };
+export const films = { chapter1Intro: '', chapter1Outro: '', chapter2Intro: '', chapter2Outro: '', chapter1TurningPoint: '', chapter2TurningPoint: '', prologueIntro: '', prologueOutro: '', chapter3Intro: '', chapter3TurningPoint: '', chapter3Outro: '', chapter4Intro: '', chapter4TurningPoint: '', chapter4Outro: '', chapter5Intro: '', chapter5TurningPoint: '', chapter5Outro: '' };
 export const chapters = [
   { n:'00', title:'Bloom Mirror', theme:'序章 · 你的存在，讓世界回應', icon:'◌', biome:'mirror', ready:false },
   { n:'01', title:'種子森林', theme:'土壤生態 · 聽見大地的呼吸', icon:'❧', biome:'forest', ready:true },
