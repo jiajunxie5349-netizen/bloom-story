@@ -11,6 +11,7 @@ import { addUnderstory } from './ground-cover.js';
 import { createTaskSite } from './task-sites.js';
 import { addForestAtmosphere } from './forest-atmosphere.js';
 import { mapLayout } from './map-config.js';
+import {addLivingWorld} from './living-world.js';
 
 export async function createWorld(canvas, settings, onStatus) {
   const base=import.meta.env.BASE_URL;
@@ -40,7 +41,7 @@ export async function createWorld(canvas, settings, onStatus) {
     const habitat={value:0},waterTime={value:0},waterHealth={value:0};
     const seasonalMaterials=[];
     const repairs=[0,1,2].map(()=>({value:new THREE.Vector4(0,0,0,0)}));
-    const waterMaterial=new THREE.MeshStandardMaterial({color:'#5e503b',roughness:.18,metalness:.08,emissive:'#241b12',emissiveIntensity:0,envMapIntensity:.3});
+    const waterMaterial=new THREE.MeshStandardMaterial({color:'#5e503b',roughness:.29,metalness:.03,emissive:'#241b12',emissiveIntensity:0,envMapIntensity:.12});
     function worldSurface(material,fragment,uniforms={}){
       material.onBeforeCompile=shader=>{
         Object.assign(shader.uniforms,uniforms);
@@ -53,7 +54,7 @@ export async function createWorld(canvas, settings, onStatus) {
     }
     const shoreCanvas=document.createElement('canvas');shoreCanvas.width=shoreCanvas.height=terrain.size;const shoreContext=shoreCanvas.getContext('2d'),shoreImage=shoreContext.createImageData(terrain.size,terrain.size);
     terrain.heights.forEach((h,i)=>{const v=h==null?0:Math.max(0,Math.min(1,(h+3.05)/.65));shoreImage.data.set([v*255,v*255,v*255,255],i*4);});shoreContext.putImageData(shoreImage,0,0);const shoreMap=new THREE.CanvasTexture(shoreCanvas);shoreMap.flipY=false;
-    worldSurface(waterMaterial,'vec2 wp=vHabitatPosition.xz;float drift=earthNoise(wp*.37+vec2(uWaterTime*.024,-uWaterTime*.015));float wave=sin(wp.x*1.3+wp.y*.7-uWaterTime*.7)+sin(wp.y*1.9-wp.x*.6+uWaterTime*.5);vec3 murky=mix(vec3(.047,.032,.016),vec3(.095,.063,.028),drift);vec3 clean=mix(vec3(.025,.095,.095),vec3(.055,.16,.15),drift);diffuseColor.rgb=mix(murky,clean,uHabitat);float bank=texture2D(uShore,(wp+30.)/60.).r;float foam=smoothstep(.55,.65,bank)*(1.-smoothstep(.72,.85,bank))*(.55+.45*sin(wp.x*5.+wp.y*4.+uWaterTime*.65));diffuseColor.rgb+=mix(vec3(.045,.033,.015),vec3(.10,.13,.10),uHabitat)*foam;diffuseColor.rgb+=vec3(.008,.012,.011)*pow(.5+.5*sin(wave*2.),10.);',{uWaterTime:waterTime,uHabitat:waterHealth,uShore:{value:shoreMap}});
+    worldSurface(waterMaterial,'vec2 wp=vHabitatPosition.xz;float drift=earthNoise(wp*.37+vec2(uWaterTime*.024,-uWaterTime*.015));float wave=sin(wp.x*1.3+wp.y*.7-uWaterTime*.7)+sin(wp.y*1.9-wp.x*.6+uWaterTime*.5);vec3 murky=mix(vec3(.047,.032,.016),vec3(.095,.063,.028),drift);vec3 clean=mix(vec3(.025,.095,.095),vec3(.055,.16,.15),drift);diffuseColor.rgb=mix(murky,clean,uHabitat);float bank=texture2D(uShore,(wp+36.)/72.).r;float foam=smoothstep(.55,.65,bank)*(1.-smoothstep(.72,.85,bank))*(.55+.45*sin(wp.x*5.+wp.y*4.+uWaterTime*.65));diffuseColor.rgb+=mix(vec3(.045,.033,.015),vec3(.10,.13,.10),uHabitat)*foam;diffuseColor.rgb+=vec3(.008,.012,.011)*pow(.5+.5*sin(wave*2.),10.);',{uWaterTime:waterTime,uHabitat:waterHealth,uShore:{value:shoreMap}});
     const shoreCompile=waterMaterial.onBeforeCompile;waterMaterial.onBeforeCompile=shader=>{shoreCompile(shader);shader.fragmentShader='uniform sampler2D uShore;\n'+shader.fragmentShader;};
     const compileWater=waterMaterial.onBeforeCompile;
     waterMaterial.onBeforeCompile=shader=>{compileWater(shader);shader.vertexShader='uniform float uWaterTime;\n'+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ntransformed+=normalize(normal)*(sin(position.x*.9+uWaterTime*.8)+cos(position.y*1.1-uWaterTime*.7))*.035;');shader.fragmentShader=shader.fragmentShader.replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nnormal=normalize(normal+vec3((sin(vHabitatPosition.x*2.3+vHabitatPosition.z*1.7+uWaterTime*.9)+sin(vHabitatPosition.x*1.2-vHabitatPosition.z*2.4+uWaterTime*.65))*.012,0.,(cos(vHabitatPosition.z*1.9+vHabitatPosition.x*1.4-uWaterTime*.7)+sin(vHabitatPosition.z*2.8-vHabitatPosition.x*1.2+uWaterTime*.45))*.012));');};
@@ -75,7 +76,8 @@ export async function createWorld(canvas, settings, onStatus) {
     const leafProfile=[new THREE.Vector2(.04,-.78),new THREE.Vector2(.23,-.57),new THREE.Vector2(.31,-.26),new THREE.Vector2(.34,.05),new THREE.Vector2(.39,.32),new THREE.Vector2(.29,.63),new THREE.Vector2(.13,.87),new THREE.Vector2(.015,1.09)];
     const leafShell=guardian.getObjectByName('Leaf_Envelope')??new THREE.Mesh(new THREE.LatheGeometry(leafProfile,24,.62,Math.PI*2-1.24),new THREE.MeshStandardMaterial({color:'#8e8052',roughness:.85,side:THREE.DoubleSide}));
     worldSurface(leafShell.material,'float veins=pow(.5+.5*sin(vHabitatPosition.y*18.+sin(vHabitatPosition.x*25.)*1.5),12.);float grain=earthNoise(vHabitatPosition.xz*70.);diffuseColor.rgb*=.74+grain*.28+veins*.14;');if(!leafShell.parent)guardian.add(leafShell);
-    const hands=['Hand_L','Hand_R'].map(n=>guardian.getObjectByName(n)).filter(Boolean);
+    ['Hand_L','Hand_R'].forEach(n=>{const h=guardian.getObjectByName(n);if(h)h.visible=false;});
+    const hands=[-1,1].map(side=>{const hand=new THREE.Mesh(new THREE.SphereGeometry(.105,24,16),new THREE.MeshStandardMaterial({color:'#c3cd88',roughness:.45,emissive:'#82944a',emissiveIntensity:.2}));hand.position.set(side*.28,.12,.36);guardian.add(hand);return hand;});
     const capes=['Leaf_Cape_Left','Leaf_Cape_Right','Leaf_Cape_Back','Leaf_Hood_Brim'].map(n=>guardian.getObjectByName(n)).filter(Boolean);
     const core=guardian.getObjectByName('Sprite_Core');if(core)core.position.y=.22;
     const halo=new THREE.Mesh(new THREE.RingGeometry(.34,.40,40),new THREE.MeshBasicMaterial({color:'#cdf6c6',transparent:true,opacity:.7,side:THREE.DoubleSide}));halo.rotation.x=-Math.PI/2;player.add(halo);halo.position.y=.07;halo.visible=false;
@@ -93,11 +95,12 @@ export async function createWorld(canvas, settings, onStatus) {
     const targets=[];
     function marker(type,index,x,z,label){
       const position=at(x,z),site=createTaskSite(type,index,label);site.group.position.copy(position);scene.add(site.group);
-      const t={...site,type,index,position,crystal:site.focus,label};targets.push(t);
+      const interactionPosition=position.clone().add(new THREE.Vector3(.7,.2,0));const t={...site,type,index,position,interactionPosition,crystal:site.focus,label};targets.push(t);
       if(site.rock&&index===0){t.obstacle={x:position.x+.9,z:position.z+.1,radius:site.radius};terrain.obstacles.push(t.obstacle);}
     }
     for(const t of mapLayout.sites)marker(t.type,t.index,t.x,t.z,t.label);
     const seed=targets.at(-1);
+    const living=addLivingWorld(scene,terrain,targets);const npcs=living.npcs;
     let guideTarget=null,hintTarget=null;
     // Task focus is optional and never draws a route through the forest.
     function guideTo(target){guideTarget=target?targets.find(t=>t.type===target.type&&t.index===target.index):null;return 0;}
@@ -112,7 +115,7 @@ export async function createWorld(canvas, settings, onStatus) {
     const localDots=new Float32Array(16*3),localColors=new Float32Array(16*3);
     const sparks=new THREE.Points(new THREE.BufferGeometry().setAttribute('position',new THREE.BufferAttribute(localDots,3)).setAttribute('color',new THREE.BufferAttribute(localColors,3)),new THREE.PointsMaterial({size:.055,map:particles.material.map,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));player.add(sparks);
     const pollutedWater=new THREE.Color('#241b36'),clearWater=new THREE.Color('#357a71'),darkFog=new THREE.Color('#3c3a32'),livingFog=new THREE.Color('#7b8d6a');
-    let presentation=false,pointerX=0,pointerY=0;
+    let presentation=false,pointerX=0,pointerY=0,jumpHeight=0,jumpVelocity=0,jumpHeld=false;
     let yaw=0,pitch=.38,distance=8,targetDistance=8,quality=settings.quality,restoration=0;
     const velocity=new THREE.Vector3(),move=new THREE.Vector3(),desiredCamera=new THREE.Vector3(),look=new THREE.Vector3();
     const cameraRay=new THREE.Raycaster();cameraRay.far=12;
@@ -132,8 +135,8 @@ export async function createWorld(canvas, settings, onStatus) {
     snapCamera();
     function update(dt,time,input,active,progress,stage,scan,reduced){
       if(active){
-        const x=Number(input.has('KeyD'))-Number(input.has('KeyA')),z=Number(input.has('KeyS'))-Number(input.has('KeyW'));
-        move.set(x,0,z);if(move.lengthSq())move.normalize().applyAxisAngle(THREE.Object3D.DEFAULT_UP,yaw).multiplyScalar(3.3);
+        const x=Number(input.has('KeyD')||input.has('ArrowRight'))-Number(input.has('KeyA')||input.has('ArrowLeft')),z=Number(input.has('KeyS')||input.has('ArrowDown'))-Number(input.has('KeyW')||input.has('ArrowUp'));
+        move.set(x,0,z);if(move.lengthSq())move.normalize().applyAxisAngle(THREE.Object3D.DEFAULT_UP,yaw).multiplyScalar(settings.speed??3.3);
         velocity.lerp(move,1-Math.exp(-9*dt));
         const steps=Math.max(1,Math.ceil(velocity.length()*dt/.08));
         for(let s=0;s<steps;s++){
@@ -142,10 +145,12 @@ export async function createWorld(canvas, settings, onStatus) {
           if(terrain.canMove(player.position.x,nz,player.position.y))player.position.z=nz;
           player.position.y=terrainY(player.position.x,player.position.z);
         }
-        if(velocity.lengthSq()>.1)guardian.rotation.y=THREE.MathUtils.damp(guardian.rotation.y,Math.atan2(velocity.x,velocity.z),10,dt);
+        if(velocity.lengthSq()>.1)guardian.rotation.y+=Math.atan2(Math.sin(Math.atan2(velocity.x,velocity.z)-guardian.rotation.y),Math.cos(Math.atan2(velocity.x,velocity.z)-guardian.rotation.y))*(1-Math.exp(-10*dt));
       } else velocity.set(0,0,0);
-      guardian.position.y=1.1+(reduced?0:Math.sin(time*1.7)*.085);
-      hands.forEach((hand,i)=>{hand.position.y=reduced?0:Math.sin(time*1.7+i*.35)*.045;hand.position.z=reduced?0:Math.sin(time*1.25+i)*.018;hand.rotation.z=reduced?0:Math.sin(time*1.4+i*.7)*.065;});
+      if(active&&input.has('Space')&&!jumpHeld&&jumpHeight===0)jumpVelocity=2.25;
+      jumpHeld=active&&input.has('Space');if(jumpVelocity||jumpHeight){jumpVelocity-=6.5*dt;jumpHeight=Math.max(0,jumpHeight+jumpVelocity*dt);if(!jumpHeight)jumpVelocity=0;}
+      guardian.position.y=1.1+jumpHeight+(reduced?0:Math.sin(time*1.7)*.085);
+      hands.forEach((hand,i)=>{hand.position.y=.12+(reduced?0:Math.sin(time*1.7+i*.8)*.07);hand.position.z=.36+(reduced?0:Math.sin(time*1.25+i)*.045);hand.position.x=(i?1:-1)*(.28+Math.sin(time*.9+i)*.025);hand.rotation.z=reduced?0:Math.sin(time*1.4+i*.7)*.065;});
       capes.forEach((cape,i)=>{cape.rotation.x=reduced?0:Math.sin(time*1.2+i*.8)*.018;});
       for(let i=ripples.length-1;i>=0;i--){const r=ripples[i];r.age+=dt;r.ring.scale.setScalar(1+r.age*4);r.ring.material.opacity=Math.max(0,.65-r.age*.6);if(r.age>1.1){scene.remove(r.ring);r.ring.material.dispose();ripples.splice(i,1);}}
       distance=THREE.MathUtils.damp(distance,targetDistance,8,dt);
@@ -155,7 +160,7 @@ export async function createWorld(canvas, settings, onStatus) {
       cameraCollisionTimer+=dt;
       if(cameraCollisionTimer>.125){cameraCollisionTimer=0;scene.updateMatrixWorld(true);cameraRay.set(look,desiredCamera);cameraRay.far=distance;const hit=cameraRay.intersectObjects(collisionArt,false).find(h=>h.distance>1);occlusionDistance=hit?Math.max(1.2,hit.distance-.35):12;}
       desiredCamera.multiplyScalar(Math.min(distance,occlusionDistance)).add(look);
-      const outer=Math.hypot(desiredCamera.x,desiredCamera.z);if(outer>29){desiredCamera.x*=29/outer;desiredCamera.z*=29/outer;}
+      const outer=Math.hypot(desiredCamera.x,desiredCamera.z);if(outer>36){desiredCamera.x*=36/outer;desiredCamera.z*=36/outer;}
       const floor=terrain.raw(desiredCamera.x,desiredCamera.z);if(floor!==null&&floor!==undefined)desiredCamera.y=Math.max(desiredCamera.y,floor+.35);
       camera.position.lerp(desiredCamera,1-Math.exp(-12*dt));camera.lookAt(look);
       restoration=THREE.MathUtils.damp(restoration,progress.ritual?1:progress.barriers.length*.06+progress.soils.length*.18,1,dt);
@@ -164,7 +169,8 @@ export async function createWorld(canvas, settings, onStatus) {
       waterMaterial.emissiveIntensity=0;waterHealth.value=THREE.MathUtils.damp(waterHealth.value,(progress.barriers.length===2?.2:0)+(progress.soils.includes(0)?.35:0)+(progress.soils.includes(1)?.25:0)+(progress.ritual?.2:0),.65,dt);ambient.intensity=.85+restoration*.85;moon.intensity=1.3-restoration*.3;warm.intensity=.25+restoration*2.8;seasonalMaterials.forEach(({material,original})=>material.color.copy(original).multiply(new THREE.Color().lerpColors(new THREE.Color('#95826b'),new THREE.Color('#b9cca1'),restoration)));particles.material.opacity=.12+restoration*.53;scene.fog.color.lerpColors(darkFog,livingFog,restoration*.5);scene.background.copy(scene.fog.color);
       repairs.forEach((r,i)=>{const t=targets.find(t=>t.type==='soil'&&t.index===i);r.value.set(t.position.x,t.position.z,0,THREE.MathUtils.damp(r.value.w,progress.soils.includes(i)?1:0,1.8,dt));});
       atmosphere.update(restoration,quality);
-      growth.update(repairs.map(r=>r.value.w),progress.ritual,quality,time,reduced);
+      growth.update(repairs.map(r=>r.value.w),progress.ritual,quality,time,reduced);living.update(time,restoration,progress,reduced);
+      const available=new Set(activeTargets(stage,progress));
       for(const t of targets){
         const done=t.type==='survey'?progress.scanned.includes(t.index)&&!(progress.scanned.length===3&&!progress.evidence):t.type==='isolate'?progress.barriers.includes(t.index):t.type==='soil'?progress.soils.includes(t.index):progress.ritual;
         t.group.visible=!(t.type==='isolate'&&t.index===1);
@@ -172,10 +178,11 @@ export async function createWorld(canvas, settings, onStatus) {
         if(t.type==='soil'&&t.index!==progress.soils.length)t.ring.visible=false;
         if(t.type==='survey'&&progress.scanned.length===3&&!progress.evidence)t.ring.visible=t.index===2;
         if(t.type==='isolate'&&done&&t.obstacle){t.rock.position.x=1.3;t.obstacle.x=t.position.x+1.3;}
-        t.sign.visible=((scan&&t===guideTarget&&player.position.distanceTo(t.position)<12)||t===hintTarget)&&player.position.distanceTo(t.position)>2.1;
+        const siteDistance=Math.hypot(player.position.x-t.interactionPosition.x,player.position.z-t.interactionPosition.z);
+        t.sign.visible=(((scan&&t===guideTarget&&siteDistance<12)||t===hintTarget)||(available.has(t)&&siteDistance<7))&&siteDistance>2.1;
         t.ring.visible=(t.ring.visible&&scan)||t===hintTarget;
         if(t.type==='soil'&&t.index===0&&done)t.objects.forEach(o=>o.visible=false);
-        if(t.type==='soil'&&t.index===2)t.plantMaterial.color.set(done?'#718b49':'#6f7350');
+        if(t.type==='soil'&&t.index===2)t.plantMaterial.color.set(done?'#718b49':'#6c5034');
         t.crystal.visible=!(t.type==='soil'&&t.index===0&&done);t.ring.material.opacity=t===guideTarget?.5:.12;
         if(stage==='reflect'&&t===seed)t.group.visible=!(t.type==='isolate'&&t.index===1);
         if(t.type==='ritual'){t.crystal.position.y=.45+(reduced?0:Math.sin(time*1.8)*.045);if(!reduced)t.crystal.rotation.y=time*.25;}
@@ -183,7 +190,7 @@ export async function createWorld(canvas, settings, onStatus) {
       if(!reduced){particles.rotation.y=time*.015;particles.position.y=Math.sin(time*.3)*.2;}
       for(let i=0;i<16;i++){const t=reduced?i:time,angle=i*2.4+t*.35;localDots[i*3]=Math.cos(angle)*(.45+i%3*.18);localDots[i*3+1]=.8+(i%5)*.23+Math.sin(t*.7+i)*.1;localDots[i*3+2]=Math.sin(angle)*.65;const bright=reduced?.65:.3+.7*(.5+.5*Math.sin(t*1.4+i*3));localColors.set([bright*.85,bright,bright*.45],i*3);}sparks.geometry.attributes.position.needsUpdate=true;sparks.geometry.attributes.color.needsUpdate=true;
       particles.visible=quality!=='low';
-      if(presentation){camera.position.set(19+pointerX*.8,6+pointerY*.5,25);camera.lookAt(-1,1,0);}
+      if(presentation==='pause'){camera.position.copy(player.position).add(new THREE.Vector3(3+Math.sin(time*.06)*.3,2.6,4));camera.lookAt(player.position.clone().add(new THREE.Vector3(0,1.2,0)));}else if(presentation){camera.position.set(19+pointerX*1.3+Math.sin(time*.04)*.25,6+pointerY*.7,25);camera.lookAt(-1,1,0);}
       renderer.info.reset();if(quality==='high')composer.render(dt);else renderer.render(scene,camera);
     }
     function activeTargets(stage,p){
@@ -191,7 +198,7 @@ export async function createWorld(canvas, settings, onStatus) {
       return targets.filter(t=>!(t.type==='isolate'&&t.index===1)&&(t.type===stage||(stage==='reflect'&&t.type==='ritual'))&&(t.type!=='soil'||t.index===p.soils.length)&&!(t.type==='survey'?p.scanned.includes(t.index):t.type==='isolate'?p.barriers.includes(t.index):false));
     }
     draco.dispose();onStatus('森林已準備好');
-    return {renderer,player,terrain,targets,spawn,seed,resize,rotate,zoom,setQuality,teleport,update,activeTargets,touchWater,guideTo,
+    return {renderer,player,terrain,targets,npcs,spawn,seed,resize,rotate,zoom,setQuality,teleport,update,activeTargets,touchWater,guideTo,
       hint(target){hintTarget=target?targets.find(t=>t.type===target.type&&t.index===target.index):null;},
       present(enabled,x=0,y=0){presentation=enabled;pointerX=x;pointerY=y;},
       bearing(p){return Math.atan2(p.x-player.position.x,-(p.z-player.position.z))+yaw;},

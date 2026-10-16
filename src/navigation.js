@@ -12,7 +12,7 @@ export class Terrain {
       const i=queue[k], [px,pz]=this.coordinates(i);
       for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]) {
         const nx=px+dx*this.step,nz=pz+dz*this.step,j=this.index(nx,nz);
-        if(j<0||this.blocked.has(j)||this.reachable.has(j)||Math.hypot(nx,nz)>(this.radius??18)||this.heights[j]==null||this.heights[j]<-2.45||Math.abs(this.heights[j]-this.heights[i])>.24) continue;
+        if(j<0||this.blocked.has(j)||this.reachable.has(j)||Math.hypot(nx,nz)>(this.radius??18)||this.heights[j]==null||this.heights[j]<-2.45||Math.abs(this.heights[j]-this.heights[i])>.36) continue;
         this.reachable.add(j);queue.push(j);
       }
     }
@@ -22,7 +22,7 @@ export class Terrain {
     const connected=new Set([seed]),footQueue=[seed];
     for(let k=0;k<footQueue.length;k++){
       const i=footQueue[k];for(const j of [i-1,i+1,i-this.size,i+this.size]){
-        if(!safe.has(j)||connected.has(j)||Math.abs(this.heights[j]-this.heights[i])>.24)continue;
+        if(!safe.has(j)||connected.has(j)||Math.abs(this.heights[j]-this.heights[i])>.36)continue;
         const [a,b]=this.coordinates(i),[c,d]=this.coordinates(j);
         if(Math.hypot(a-c,b-d)>this.step*1.1)continue;
         connected.add(j);footQueue.push(j);
@@ -38,7 +38,7 @@ export class Terrain {
     return this.coordinates(best);
   }
   height(x,z) {
-    const i=this.index(x,z); if(!this.reachable.has(i)) return null;
+    const i=this.index(x,z); if(i<0||Math.hypot(x,z)>this.radius||this.heights[i]==null||this.heights[i]<-2.45) return null;
     // Bilinear interpolation within valid ground cells, fallback at terrain edges.
     const fx=(x-this.min)/this.step,fz=(z-this.min)/this.step,ix=Math.floor(fx),iz=Math.floor(fz);
     if(ix<0||iz<0||ix>=this.size-1||iz>=this.size-1)return this.heights[i];
@@ -56,7 +56,7 @@ export class Terrain {
   }
   canMove(x,z,oldY) {
     const y=this.height(x,z); if(y==null||this.blocked.has(this.index(x,z))||Math.abs(y-oldY)>.36)return false;
-    if(this.obstacles.some(o=>Math.hypot(x-o.x,z-o.z)<o.radius+.27))return false;
-    return [[.16,0],[-.16,0],[0,.16],[0,-.16]].every(([a,b])=>this.height(x+a,z+b)!=null);
+    if(this.obstacles.some(o=>Math.hypot(x-o.x,z-o.z)<o.radius+.19))return false;
+    return [[.12,0],[-.12,0],[0,.12],[0,-.12]].every(([a,b])=>this.height(x+a,z+b)!=null);
   }
 }

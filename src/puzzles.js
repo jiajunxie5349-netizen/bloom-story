@@ -16,7 +16,7 @@ export function checkPuzzle(k,s){
  if(!Object.hasOwn(puzzleNames,k))return fail('未知任務，無法提交。');
  if(k==='evidence'){
   if(s.source!=='B')return fail('比較 A 與 B：指數差異從哪裡開始？受影響地點未必就是來源。');
-  if(s.route!=='branch')return fail('把來源、支流、水池與下游連成傳播路徑，不能只憑紫色反光判定。');
+  if(s.route!=='branch')return fail('把來源、支流、水池與下游連成傳播路徑，不能只憑水色判定。');
   if(s.limit!=='repeat')return fail('單次資料只支持優先調查的假說，還需要再次採樣及來源調查。');
  }
  if(k==='water'){
