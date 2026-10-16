@@ -1,3 +1,4 @@
+import {canopyLayout} from '../src/canopy-layout.js';
 import {lotusLayout} from '../src/lotus-layout.js';
 import {mapLayout} from '../src/map-config.js';
 import {taskBrief} from '../src/task-guidance.js';
@@ -29,7 +30,7 @@ const items=Object.fromEntries(specimens.map(i=>[i.id,i.destination]));assert.eq
 const zones={A:'cover',B:'plant',C:'buffer',D:'keep',E:'isolate'};assert.equal(checkPuzzle('soil',{zones}).ok,true);assert.equal(checkPuzzle('soil',{zones:{...zones,E:'cover'}}).ok,false);
 assert.equal(checkPuzzle('plants',{zones:{shade:'shade',slope:'slope',shore:'shore'},habitat:true}).ok,true);assert.equal(checkPuzzle('plants',{zones:{shade:'shore',slope:'slope',shore:'shade'},habitat:true}).ok,false);
 assert.equal(checkPuzzle('transfer',{order:['observe','source','restore','monitor'],reason:'data'}).ok,true);assert.equal(checkPuzzle('transfer',{order:['restore','observe','source','monitor'],reason:'data'}).ok,false);
-const t=new Terrain(JSON.parse(fs.readFileSync(new URL('../public/models/terrain_v8.json',import.meta.url))),JSON.parse(fs.readFileSync(new URL('../public/models/collisions_v8.json',import.meta.url))));lotusLayout.filter(p=>!p.pond).forEach(p=>t.obstacles.push({x:p.x,z:p.z,radius:.12}));t.connect(...mapLayout.spawn);
+const t=new Terrain(JSON.parse(fs.readFileSync(new URL('../public/models/terrain_v10.json',import.meta.url))),JSON.parse(fs.readFileSync(new URL('../public/models/collisions_v10.json',import.meta.url))));canopyLayout.forEach(p=>t.obstacles.push({x:p.x,z:p.z,radius:.14}));lotusLayout.filter(p=>!p.pond).forEach(p=>t.obstacles.push({x:p.x,z:p.z,radius:.12}));t.connect(...mapLayout.spawn);
 assert(t.safe.size>1000);
 const taskPoints=mapLayout.sites.map(s=>[s.x,s.z]);
 // Verify actual traversability with the controller's footprint and interpolated height.

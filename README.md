@@ -1,5 +1,17 @@
 # FloraVerse Bloom Story 第一、二章鍵鼠初版
 
+## 第十輪：巨葉森林、對話與清楚的入口
+
+第一章增加高處巨型荷葉與菌傘，細莖保留通行空間。紫色異變膜是架空侵擾，依來源及土壤任務逐步退去；原生植物保留。地表改為連續曲面，河岸與通行資料同步調整，河水使用曲線與變化寬度，避免原本折線水帶及硬直網格岸壁。角色葉衣另存柔化模型，加入轉身傾斜與小手慣性。
+
+右上角「旅程選單」可直接暫停、設定與儲存回主畫面，也支援 Esc。左上角葉片地圖按鈕或 M 開關地圖。NPC 改為逐句對話帶，讀完可「記入旅途筆記」；按 J 展開目前目標、步驟、完成條件與歷次線索。筆記使用獨立 `floraverse.story.v1`，不改寫章節任務成果。
+
+主畫面新增第二章直接入口，點章節卡也可進入實際三維溫室；未解鎖時只預覽，正式任務仍需第一章 80% 並喚醒種子。第二章補充葉叢、貼地植被、藤蔓與花床邊緣材質；仍屬程序化場景初版，不宣稱照片級寫實。
+
+第一、二章各預留開場、轉折與結尾影片。`chapter1TurningPoint` 在水路完成後觸發，`chapter2TurningPoint` 在來源處理完成並離開回饋後觸發。沒有影片時使用文字故事銜接，影片不代替任務得分。序章及第三至五章欄位為後續預留，尚未開發場景不會因此變成可玩。
+
+現用資產為 `terrain_v10.json`、`collisions_v10.json`、`sprite_guardian_v10.glb`；舊檔保留。`src/sculpted-ground.js`、`canopy.js`、`lotus.js` 負責第一章曲面與高處植被，`src/story.js` 負責故事文字與對話紀錄，`src/storybook.css` 負責介面外觀。
+
 ## 荷葉補回
 
 第一章池岸與淺水邊緣新增 17 組完整荷葉造型，參照原始設計圖的扇形葉片與放射葉脈，以曲面、微捲葉緣與枯舊材質呈現。植株大小獨立於地面，根部貼合地形；池岸葉片高於角色活動高度，只有細莖參與碰撞，避開任務與通行路線。修復前偏灰褐，修復後逐漸轉綠。
@@ -40,8 +52,10 @@
 export const films = {
   chapter1Intro: 'videos/chapter-01-intro.mp4',
   chapter1Outro: 'videos/chapter-01-outro.mp4',
+  chapter1TurningPoint: 'videos/chapter-01-turning.mp4',
   chapter2Intro: 'videos/chapter-02-intro.mp4',
   chapter2Outro: 'videos/chapter-02-outro.mp4',
+  chapter2TurningPoint: 'videos/chapter-02-turning.mp4',
 };
 ```
 
@@ -70,8 +84,8 @@ export const films = {
 - `src/living-world.js`、`src/ground-cover.js`：溪流、木橋、同伴與細小植被。
 - `src/puzzles.js`、`src/workbench.js`：解謎條件與教學工作台。
 - `src/progress.js`：進度驗證、草稿、儲存及解鎖。
-- 第一章：`forest_ground_v8.glb` 與 `forest_vegetation_v8.glb` 分開載入，使用 `terrain_v8.json`、`collisions_v8.json`。舊版資產保留作回復用途。
-- 角色：`sprite_guardian_refined.glb` 與 `src/guardian-life.js`；葉衣微幅彎曲、慣性與懸浮小手。
+- 第一章：`forest_ground_v8.glb` 與 `forest_vegetation_v8.glb` 分開載入，使用 `terrain_v10.json`、`collisions_v10.json`。舊版資產保留作回復用途。
+- 角色：`sprite_guardian_v10.glb` 與 `src/guardian-life.js`；葉衣微幅彎曲、慣性與懸浮小手。
 - 第二章：`light_garden.glb`、`src/garden.js`、`garden-world.js`、`garden-data.js`、`garden.css`。
 - `public/draco/`：隨站點發布的解碼器，不依賴第三方解碼 CDN。
 
