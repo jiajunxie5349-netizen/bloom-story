@@ -23,7 +23,7 @@ export async function createWorld(canvas, settings, onStatus) {
   const scene=new THREE.Scene(); scene.background=new THREE.Color('#08191b');scene.fog=new THREE.FogExp2('#273c36',.027);
   const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,150);
   const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
-  renderer.debug.onShaderError=()=>{throw new Error('場景材質無法在此裝置編譯');};
+  renderer.debug.onShaderError=(gl,program,vertex,fragment)=>{console.error('Forest shader:',gl.getProgramInfoLog(program),gl.getShaderInfoLog(vertex),gl.getShaderInfoLog(fragment));throw new Error('場景材質無法在此裝置編譯');};
   renderer.shadowMap.type=THREE.PCFShadowMap;renderer.info.autoReset=false;
   renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
   const pmrem=new THREE.PMREMGenerator(renderer),room=new RoomEnvironment();
@@ -214,5 +214,7 @@ export async function createWorld(canvas, settings, onStatus) {
     };
   }catch(error){draco.dispose();composer.dispose();renderer.dispose();throw error;}
 }
+
+
 
 
