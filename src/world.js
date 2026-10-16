@@ -12,6 +12,7 @@ import { createTaskSite } from './task-sites.js';
 import { addForestAtmosphere } from './forest-atmosphere.js';
 import { mapLayout } from './map-config.js';
 import {breatheGuardian} from './guardian-life.js';
+import {addLotus} from './lotus.js';
 import {addLivingWorld} from './living-world.js';
 
 export async function createWorld(canvas, settings, onStatus) {
@@ -102,6 +103,7 @@ export async function createWorld(canvas, settings, onStatus) {
     for(const t of mapLayout.sites)marker(t.type,t.index,t.x,t.z,t.label);
     const seed=targets.at(-1);
     const living=addLivingWorld(scene,terrain,targets);const npcs=living.npcs;
+    const lotus=addLotus(scene,terrain);
     let guideTarget=null,hintTarget=null;
     // Task focus is optional and never draws a route through the forest.
     function guideTo(target){guideTarget=target?targets.find(t=>t.type===target.type&&t.index===target.index):null;return 0;}
@@ -121,7 +123,7 @@ export async function createWorld(canvas, settings, onStatus) {
     const velocity=new THREE.Vector3(),move=new THREE.Vector3(),desiredCamera=new THREE.Vector3(),look=new THREE.Vector3();
     const cameraRay=new THREE.Raycaster();cameraRay.far=12;
     const collisionArt=[];forest.traverse(o=>{if(o.isMesh&&!o.name.toLowerCase().startsWith('water'))collisionArt.push(o);});
-    let cameraCollisionTimer=0,occlusionDistance=12;
+    collisionArt.push(...lotus.collisionMeshes);let cameraCollisionTimer=0,occlusionDistance=12;
     function resize(){
       renderer.shadowMap.enabled=quality==='high';
       const max=quality==='high'?1.75:quality==='low'?1:1.5;
@@ -167,7 +169,7 @@ export async function createWorld(canvas, settings, onStatus) {
       waterMaterial.color.lerpColors(pollutedWater,clearWater,restoration);
       waterMaterial.emissiveIntensity=0;waterHealth.value=THREE.MathUtils.damp(waterHealth.value,(progress.barriers.length===2?.2:0)+(progress.soils.includes(0)?.35:0)+(progress.soils.includes(1)?.25:0)+(progress.ritual?.2:0),.65,dt);ambient.intensity=.85+restoration*.85;moon.intensity=1.3-restoration*.3;warm.intensity=.25+restoration*2.8;seasonalMaterials.forEach(({material,original})=>material.color.copy(original).multiply(new THREE.Color().lerpColors(new THREE.Color('#95826b'),new THREE.Color(material.name.includes('leaf')?'#8fbd79':'#b9cca1'),restoration)));particles.material.opacity=.12+restoration*.53;scene.fog.color.lerpColors(darkFog,livingFog,restoration*.5);scene.background.copy(scene.fog.color);
       repairs.forEach((r,i)=>{const t=targets.find(t=>t.type==='soil'&&t.index===i);r.value.set(t.position.x,t.position.z,0,THREE.MathUtils.damp(r.value.w,progress.soils.includes(i)?1:0,1.8,dt));});
-      atmosphere.update(restoration,quality);
+      atmosphere.update(restoration,quality);lotus.update(time,restoration,reduced);
       growth.update(repairs.map(r=>r.value.w),progress.ritual,quality,time,reduced);living.update(time,restoration,progress,reduced);
       const available=new Set(activeTargets(stage,progress));
       for(const t of targets){
@@ -208,3 +210,4 @@ export async function createWorld(canvas, settings, onStatus) {
     };
   }catch(error){draco.dispose();composer.dispose();renderer.dispose();throw error;}
 }
+
