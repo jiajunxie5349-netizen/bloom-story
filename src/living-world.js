@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {organicCap,woodlandMaterial} from './woodland-material.js';
 export const riverPoints=[[19,-26,-2.15],[18,-17,-2.25],[16,-8,-2.35],[12,0,-2.45],[8,6,-2.55]];
 export function addLivingWorld(scene,terrain,targets){
  const root=new THREE.Group();scene.add(root);
@@ -11,8 +12,8 @@ export function addLivingWorld(scene,terrain,targets){
  // outer land. The walking ring r=30 is explicitly kept open.
  const leaf=new THREE.SphereGeometry(1,12,6);leaf.scale(.085,.015,.30);
  const stem=new THREE.CylinderGeometry(.035,.07,.8,10);
- const cap=new THREE.SphereGeometry(.42,20,10,0,Math.PI*2,0,Math.PI*.52);
- const stems=new THREE.InstancedMesh(stem,bark,110),caps=new THREE.InstancedMesh(cap,leafMat,110),leaves=new THREE.InstancedMesh(leaf,leafMat,900);
+ const cap=organicCap();cap.scale(.42,.42,.42);const capMat=woodlandMaterial('cap');
+ const stems=new THREE.InstancedMesh(stem,bark,110),caps=new THREE.InstancedMesh(cap,capMat,110),leaves=new THREE.InstancedMesh(leaf,leafMat,900);
  const dummy=new THREE.Object3D();let k=0;
  for(let i=0;i<110;i++){
   const a=i*2.39996,r=i%2?32.2+(i%7)*.16:27.8+(i%4)*.1,x=Math.cos(a)*r,z=Math.sin(a)*r,y=terrain.raw(x,z);
@@ -25,13 +26,14 @@ export function addLivingWorld(scene,terrain,targets){
  // A continuous moving ribbon follows the sculpted stream bed, rather than
  // a floating decorative strip. Water remains non-walkable.
  const curve=new THREE.CatmullRomCurve3(riverPoints.map(p=>new THREE.Vector3(p[0],p[2],p[1])),false,'catmullrom',.12),positions=[],uv=[],indices=[];
- for(let i=0;i<=240;i++){const t=i/240,p=curve.getPoint(t),d=curve.getTangent(t),len=Math.hypot(d.x,d.z),nx=-d.z/len,nz=d.x/len,baseWidth=.66+Math.sin(t*17)*.045+Math.sin(t*39)*.018;let w=baseWidth;while(w>.14&&[1,-1].some(side=>(terrain.raw(p.x+nx*w*side,p.z+nz*w*side)??-3.3)>p.y-.04))w*=.9;for(const side of [-1,1]){positions.push(p.x+nx*w*side,p.y,p.z+nz*w*side);uv.push((side+1)/2,t*4);}if(i<240){const n=i*2;indices.push(n,n+2,n+1,n+1,n+2,n+3);}}
+ for(let i=0;i<=240;i++){const t=i/240,p=curve.getPoint(t),d=curve.getTangent(t),len=Math.hypot(d.x,d.z),nx=-d.z/len,nz=d.x/len,baseWidth=.77+Math.sin(t*14+.7)*.13+Math.sin(t*31+1.4)*.07;let w=baseWidth*THREE.MathUtils.smoothstep(t,0,.045);while(w>.14&&[1,-1].some(side=>(terrain.raw(p.x+nx*w*side,p.z+nz*w*side)??-3.3)>p.y-.04))w*=.9;for(const side of [-1,1]){positions.push(p.x+nx*w*side,p.y,p.z+nz*w*side);uv.push((side+1)/2,t*4);}if(i<240){const n=i*2;indices.push(n,n+2,n+1,n+1,n+2,n+3);}}
  const rg=new THREE.BufferGeometry();rg.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));rg.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));rg.setIndex(indices);rg.computeVertexNormals();
- const water=new THREE.MeshStandardMaterial({color:'#3d394b',roughness:.25,metalness:.025,envMapIntensity:.22,side:THREE.DoubleSide});const clock={value:0},riverHeal={value:0};
- water.onBeforeCompile=s=>{s.uniforms.uFlow=clock;s.uniforms.uRiverHeal=riverHeal;s.vertexShader='uniform float uFlow; varying vec2 vRiver;\n'+s.vertexShader;s.vertexShader=s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvRiver=uv;transformed.y+=sin(uv.y*13.-uFlow*.7+sin(uv.x*9.))*.008;');s.fragmentShader='uniform float uFlow;uniform float uRiverHeal;varying vec2 vRiver;\n'+s.fragmentShader;s.fragmentShader=s.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\nfloat stream=pow(.5+.5*sin(vRiver.y*37.-uFlow*.9+sin(vRiver.x*13.+vRiver.y*7.)*2.),18.);diffuseColor.rgb=mix(vec3(.035,.027,.048),vec3(.025,.085,.075),uRiverHeal)+stream*vec3(.008,.011,.012);');};
- add(rg,water,0,0,0);
+ const water=new THREE.MeshStandardMaterial({color:'#3d394b',roughness:.25,metalness:.025,envMapIntensity:.28,transparent:true,depthWrite:false,side:THREE.DoubleSide});const clock={value:0},riverHeal={value:0};
+ water.onBeforeCompile=s=>{s.uniforms.uFlow=clock;s.uniforms.uRiverHeal=riverHeal;s.vertexShader='uniform float uFlow; varying vec2 vRiver;\n'+s.vertexShader;s.vertexShader=s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvRiver=uv;transformed.y+=sin(uv.y*13.-uFlow*.7+sin(uv.x*9.))*.008;');s.fragmentShader='uniform float uFlow;uniform float uRiverHeal;varying vec2 vRiver;\n'+s.fragmentShader;s.fragmentShader=s.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\nfloat stream=pow(max(0.,sin(vRiver.y*17.+sin(vRiver.y*4.7+vRiver.x*6.3)*1.8-uFlow*.7)*sin(vRiver.y*7.1-vRiver.x*5.3+uFlow*.43)),14.);diffuseColor.a*=smoothstep(0.,.12,vRiver.x)*(1.-smoothstep(.88,1.,vRiver.x));diffuseColor.rgb=mix(vec3(.035,.027,.048),vec3(.025,.085,.075),uRiverHeal)+stream*vec3(.008,.011,.012);');s.fragmentShader=s.fragmentShader.replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nnormal=normalize(normal+vec3(sin(vRiver.y*13.+sin(vRiver.x*7.+uFlow*.27)-uFlow*.62)*.045,cos(vRiver.y*8.3-vRiver.x*11.+uFlow*.48)*.035,0.));');};
+ const streamMesh=add(rg,water,0,0,0);streamMesh.castShadow=false;
  // The bridge deck and baked walk surface share the same top elevation.
- for(let i=0;i<18;i++)add(new THREE.BoxGeometry(4.98,.12,.116),bark,18.8,-1.76,-24.44+i*.122);
+ // The existing crossing remains walkable, dressed as an irregular natural gravel shoal.
+ const gravel=new THREE.MeshStandardMaterial({color:'#6d6853',roughness:1});for(let i=0;i<27;i++){const x=16.45+(i%9)*.57+Math.sin(i*2.4)*.09,z=-24.2+Math.floor(i/9)*.59+Math.cos(i*1.7)*.10;const y=terrain.height(x,z);if(y==null)continue;const stone=add(new THREE.IcosahedronGeometry(.18,2),gravel,x,y-.13,z);stone.scale.set(1.2,.8,.9);stone.rotation.y=i*2.4;}
  // Two story companions, intentionally on walkable ground near the route.
  const npcs=[];
  function npc(id,name,x,z){const [a,b]=terrain.nearest(x,z),position=new THREE.Vector3(a,terrain.height(a,b),b),group=new THREE.Group();group.position.copy(position);root.add(group);const t={type:'npc',index:id,label:name,position,interactionPosition:position.clone().add(new THREE.Vector3(0,.4,0)),group};npcs.push(t);return t;}
