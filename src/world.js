@@ -123,7 +123,7 @@ export async function createWorld(canvas, settings, onStatus) {
     const velocity=new THREE.Vector3(),move=new THREE.Vector3(),desiredCamera=new THREE.Vector3(),look=new THREE.Vector3();
     const cameraRay=new THREE.Raycaster();cameraRay.far=12;
     const collisionArt=[];forest.traverse(o=>{if(o.isMesh&&!o.name.toLowerCase().startsWith('water'))collisionArt.push(o);});
-    let cameraCollisionTimer=0,occlusionDistance=12;
+    collisionArt.push(...lotus.collisionMeshes);let cameraCollisionTimer=0,occlusionDistance=12;
     function resize(){
       renderer.shadowMap.enabled=quality==='high';
       const max=quality==='high'?1.75:quality==='low'?1:1.5;
@@ -210,3 +210,4 @@ export async function createWorld(canvas, settings, onStatus) {
     };
   }catch(error){draco.dispose();composer.dispose();renderer.dispose();throw error;}
 }
+
