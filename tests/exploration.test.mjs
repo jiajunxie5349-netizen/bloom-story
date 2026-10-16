@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {Terrain} from '../src/navigation.js';
 import {interactionDistance,nearestInteraction,interactionRange} from '../src/interaction.js';
 const dir=new URL('../public/models/',import.meta.url);
-const t=new Terrain(JSON.parse(fs.readFileSync(new URL('terrain.json',dir))),JSON.parse(fs.readFileSync(new URL('collisions.json',dir))));t.connect(0,7.5);
+const t=new Terrain(JSON.parse(fs.readFileSync(new URL('terrain_v8.json',dir))),JSON.parse(fs.readFileSync(new URL('collisions_v8.json',dir))));t.connect(0,7.5);
 let previous=t.height(0,30);
 for(let i=0;i<=1440;i++){
  const a=i/1440*Math.PI*2,x=Math.sin(a)*30,z=Math.cos(a)*30;
