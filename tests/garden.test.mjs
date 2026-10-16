@@ -19,7 +19,7 @@ const key=(x,z)=>`${x},${z}`,q=[[0,18]],seen=new Set([key(0,18)]);
 for(let k=0;k<q.length;k++){const [x,z]=q[k];for(const [a,b] of [[.25,0],[-.25,0],[0,.25],[0,-.25]]){const nx=x+a,nz=z+b,id=key(nx,nz);if(!seen.has(id)&&valid(nx,nz)){seen.add(id);q.push([nx,nz]);}}}
 for(const site of gardenSites){assert(q.some(([x,z])=>Math.hypot(x-site.x,z-site.z)<2),'unreachable site '+site.name);for(let i=0;i<24;i++){const a=i/24*Math.PI*2,x=site.x+Math.sin(a)*1.7,z=site.z+Math.cos(a)*1.7;assert(valid(x,z),'approach blocked '+site.name);}}
 for(const b of beds)assert(!valid(b.x,b.z));assert(!valid(18,0));assert(valid(17,0));
-const dir=new URL('../public/models/',import.meta.url),terrain=JSON.parse(fs.readFileSync(new URL('terrain_v8.json',dir))),anchors=JSON.parse(fs.readFileSync(new URL('vegetation_anchors_v8.json',dir)));
+const dir=new URL('../public/models/',import.meta.url),terrain=JSON.parse(fs.readFileSync(new URL('terrain_v10.json',dir))),anchors=JSON.parse(fs.readFileSync(new URL('vegetation_anchors_v8.json',dir)));
 assert(anchors.length>200);for(const a of anchors){const i=Math.round((a.z-terrain.min)/terrain.step)*terrain.size+Math.round((a.x-terrain.min)/terrain.step);assert(Math.abs(a.rootY-terrain.heights[i])<.03,'floating root');assert(Math.abs(Math.hypot(a.x,a.z)-30)>=1.7,'walking ring obstructed');}
 console.log(`PASS second chapter learning actions, separate saves, ${seen.size} reachable cells, 24 approach angles per site, ${anchors.length} grounded forest assemblies`);
 
