@@ -1,3 +1,4 @@
+export const gardenSpawn=[0,14];
 export const GARDEN_KEY='floraverse.light-garden.v1';
 export const beds=[{x:-7,z:4,w:10,d:3},{x:7,z:-3,w:10,d:3},{x:-6,z:-12,w:8,d:3}];
 export const gardenSites=[
@@ -8,7 +9,7 @@ export const gardenSites=[
  {x:0,z:-17,name:'光之種祭壇',symbol:'❧'},
 ];
 export function gardenCanMove(x,z){return Number.isFinite(x)&&Number.isFinite(z)&&Math.abs(x)<17.8&&Math.abs(z)<20.8&&!beds.some(b=>Math.abs(x-b.x)<b.w/2+.22&&Math.abs(z-b.z)<b.d/2+.22);}
-export function freshGarden(){return {done:[],awakened:false,position:[0,18]};}
+export function freshGarden(){return {done:[],awakened:false,position:[...gardenSpawn]};}
 export function sanitizeGarden(v){const p=freshGarden();for(let i=0;i<4;i++){if(!Array.isArray(v?.done)||!v.done.includes(i))break;p.done.push(i);}p.awakened=p.done.length===4&&v?.awakened===true;if(Array.isArray(v?.position)&&v.position.length===2&&gardenCanMove(...v.position))p.position=v.position;return p;}
 export function loadGarden(storage){try{return sanitizeGarden(JSON.parse(storage.getItem(GARDEN_KEY)));}catch{return freshGarden();}}
 export const gardenPercent=p=>p.done.length*20+(p.awakened?20:0);
