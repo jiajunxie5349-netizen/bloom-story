@@ -33,8 +33,8 @@ export function addLivingWorld(scene,terrain,targets){
   }
  }
  const rg=new THREE.BufferGeometry();rg.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));rg.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));rg.setIndex(indices);rg.computeVertexNormals();
- const water=new THREE.MeshStandardMaterial({color:'#493b22',roughness:.23,metalness:.08,side:THREE.DoubleSide});const clock={value:0};
- water.onBeforeCompile=s=>{s.uniforms.uFlow=clock;s.vertexShader='uniform float uFlow; varying vec2 vRiver;\n'+s.vertexShader;s.vertexShader=s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvRiver=uv;transformed.y+=sin(uv.y*18.-uFlow*1.5)*.017;');s.fragmentShader='uniform float uFlow;varying vec2 vRiver;\n'+s.fragmentShader;s.fragmentShader=s.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\nfloat stream=pow(.5+.5*sin(vRiver.y*28.-uFlow*1.7+sin(vRiver.x*15.)),14.);diffuseColor.rgb=mix(vec3(.045,.12,.105),diffuseColor.rgb,smoothstep(1.4,2.,vRiver.y));diffuseColor.rgb+=stream*.035;');};
+ const water=new THREE.MeshStandardMaterial({color:'#493b22',roughness:.36,metalness:0,envMapIntensity:.08,side:THREE.DoubleSide});const clock={value:0};
+ water.onBeforeCompile=s=>{s.uniforms.uFlow=clock;s.vertexShader='uniform float uFlow; varying vec2 vRiver;\n'+s.vertexShader;s.vertexShader=s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvRiver=uv;transformed.y+=sin(uv.y*18.-uFlow*1.5)*.017;');s.fragmentShader='uniform float uFlow;varying vec2 vRiver;\n'+s.fragmentShader;s.fragmentShader=s.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\nfloat stream=pow(.5+.5*sin(vRiver.y*28.-uFlow*1.7+sin(vRiver.x*15.)),14.);diffuseColor.rgb=mix(vec3(.045,.12,.105),diffuseColor.rgb,smoothstep(1.4,2.,vRiver.y));diffuseColor.rgb+=stream*.006;');};
  add(rg,water,0,0,0);
  // The bridge deck and baked walk surface share the same top elevation.
  for(let i=0;i<18;i++)add(new THREE.BoxGeometry(4.98,.12,.116),bark,18.8,-1.76,-24.44+i*.122);

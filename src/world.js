@@ -190,7 +190,7 @@ export async function createWorld(canvas, settings, onStatus) {
       if(!reduced){particles.rotation.y=time*.015;particles.position.y=Math.sin(time*.3)*.2;}
       for(let i=0;i<16;i++){const t=reduced?i:time,angle=i*2.4+t*.35;localDots[i*3]=Math.cos(angle)*(.45+i%3*.18);localDots[i*3+1]=.8+(i%5)*.23+Math.sin(t*.7+i)*.1;localDots[i*3+2]=Math.sin(angle)*.65;const bright=reduced?.65:.3+.7*(.5+.5*Math.sin(t*1.4+i*3));localColors.set([bright*.85,bright,bright*.45],i*3);}sparks.geometry.attributes.position.needsUpdate=true;sparks.geometry.attributes.color.needsUpdate=true;
       particles.visible=quality!=='low';
-      if(presentation==='pause'){camera.position.copy(player.position).add(new THREE.Vector3(3+Math.sin(time*.06)*.3,2.6,4));camera.lookAt(player.position.clone().add(new THREE.Vector3(0,1.2,0)));}else if(presentation){camera.position.set(19+pointerX*1.3+Math.sin(time*.04)*.25,6+pointerY*.7,25);camera.lookAt(-1,1,0);}
+      if(presentation==='pause'){camera.position.copy(player.position).add(new THREE.Vector3(3+(reduced?0:Math.sin(time*.06)*.3),2.6,4));camera.lookAt(player.position.clone().add(new THREE.Vector3(0,1.2,0)));}else if(presentation){camera.position.set(16+pointerX*1.3+(reduced?0:Math.sin(time*.04)*.25),12+pointerY*.7,24);camera.lookAt(0,-1,2);}
       renderer.info.reset();if(quality==='high')composer.render(dt);else renderer.render(scene,camera);
     }
     function activeTargets(stage,p){
