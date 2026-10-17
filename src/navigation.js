@@ -19,6 +19,7 @@ export class Terrain {
     // Match navigation connectivity to the player's footprint, not just a point.
     const safe=new Set([...this.reachable].filter(i=>{const [a,b]=this.coordinates(i);return this.canMove(a,b,this.heights[i]);}));
     if(!safe.has(seed))seed=[...safe].sort((a,b)=>{const [ax,az]=this.coordinates(a),[bx,bz]=this.coordinates(b);return (ax-x)**2+(az-z)**2-(bx-x)**2-(bz-z)**2;})[0];
+    if(seed===undefined)throw Error('找不到可通行的地面');
     const connected=new Set([seed]),footQueue=[seed];
     for(let k=0;k<footQueue.length;k++){
       const i=footQueue[k];for(const j of [i-1,i+1,i-this.size,i+this.size]){
@@ -35,7 +36,7 @@ export class Terrain {
     const direct=this.index(x,z);if(this.safe?.has(direct)){const [a,b]=this.coordinates(direct);if(this.canMove(a,b,this.heights[direct]))return [a,b];}
     let best=-1,dist=Infinity;
     for(const i of (this.safe??this.reachable)) { const [a,b]=this.coordinates(i),d=(a-x)**2+(b-z)**2; if(!this.canMove(a,b,this.heights[i]))continue;if(d<dist){dist=d;best=i;} }
-    return this.coordinates(best);
+    if(best<0)throw Error('找不到可通行的安全位置');return this.coordinates(best);
   }
   height(x,z) {
     const i=this.index(x,z); if(i<0||Math.hypot(x,z)>this.radius||this.heights[i]==null||this.heights[i]<-2.45) return null;

@@ -3,7 +3,7 @@ export const films = { chapter1Intro: '', chapter1Outro: '', chapter2Intro: '', 
 export const chapters = [
   { n:'00', title:'Bloom Mirror', theme:'序章 · 你的存在，讓世界回應', icon:'◌', biome:'mirror', ready:false },
   { n:'01', title:'種子森林', theme:'土壤生態 · 聽見大地的呼吸', icon:'❧', biome:'forest', ready:true },
-  { n:'02', title:'光之花園', theme:'空氣與氣候 · 找回穿透塵霾的光', icon:'☼', biome:'light', ready:true },
+  { n:'02', title:'光之花園', theme:'空氣與日光 · 找回穿透塵霾的光', icon:'☼', biome:'light', ready:true },
   { n:'03', title:'蝴蝶谷', theme:'物種共生 · 守護每一種生命', icon:'⋈', biome:'valley', ready:false },
   { n:'04', title:'天空花園', theme:'水資源 · 讓水重新流動', icon:'≈', biome:'sky', ready:false },
   { n:'05', title:'生命之樹', theme:'全球生態 · 一起讓世界盛開', icon:'♧', biome:'tree', ready:false },
