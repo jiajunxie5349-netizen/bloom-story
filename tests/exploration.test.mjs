@@ -1,3 +1,4 @@
+import {peripheralLayout} from '../src/living-world.js';
 import {canopyLayout} from '../src/canopy-layout.js';
 import {lotusLayout} from '../src/lotus-layout.js';
 import fs from 'node:fs';
@@ -5,7 +6,7 @@ import assert from 'node:assert/strict';
 import {Terrain} from '../src/navigation.js';
 import {interactionDistance,nearestInteraction,interactionRange} from '../src/interaction.js';
 const dir=new URL('../public/models/',import.meta.url);
-const t=new Terrain(JSON.parse(fs.readFileSync(new URL('terrain_v11.json',dir))),JSON.parse(fs.readFileSync(new URL('collisions_v10.json',dir))));canopyLayout.forEach(p=>t.obstacles.push({x:p.x,z:p.z,radius:.14}));lotusLayout.filter(p=>!p.pond).forEach(p=>t.obstacles.push({x:p.x,z:p.z,radius:.12}));t.connect(0,7.5);
+const t=new Terrain(JSON.parse(fs.readFileSync(new URL('terrain_v12.json',dir))),JSON.parse(fs.readFileSync(new URL('collisions_v12.json',dir))));for(const p of peripheralLayout){const h=t.raw(p.x,p.z);if(h!=null&&h>=-2.4&&!t.blocked.has(t.index(p.x,p.z)))t.obstacles.push({x:p.x,z:p.z,radius:.42*p.scale});}t.connect(0,7.5);
 let previous=t.height(0,30);
 for(let i=0;i<=1440;i++){
  const a=i/1440*Math.PI*2,x=Math.sin(a)*30,z=Math.cos(a)*30;
@@ -18,12 +19,8 @@ const target={position:{x:0,y:0,z:0},interactionPosition:{x:.7,y:.2,z:0}};
 for(let i=0;i<36;i++){const a=i/36*Math.PI*2,p={x:.7+Math.sin(a)*2.3,y:0,z:Math.cos(a)*2.3};assert(interactionDistance(p,target)<interactionRange);assert(nearestInteraction(p,[target]));}
 assert.equal(interactionDistance({x:.7,y:5,z:0},target),Infinity);
 console.log('PASS entire 1440-step walking loop, 24 perimeter routes, interaction from 36 approach angles and vertical separation');
-for(const p of lotusLayout){
- assert(t.raw(p.x,p.z)!=null,'lotus root missing ground');
- if(p.pond){for(let j=0;j<24;j++){const a=j/24*Math.PI*2;const bank=t.raw(p.x+Math.sin(a)*(p.radius+.35),p.z+Math.cos(a)*(p.radius+.35));if(bank!=null&&bank>-2.45)assert(t.raw(p.x,p.z)+p.height-p.radius*.6-bank>2.15,'giant leaf must clear the walking bank');}}
- else {assert(p.height-p.radius*.6>2.15,'leaf must clear the guardian and slight jump');assert(!t.canMove(p.x,p.z,t.height(p.x,p.z)),'stem is solid');}
-}
-console.log('PASS lotus root supports, pond-edge clearance and overhead walking space');
+const fans=JSON.parse(fs.readFileSync(new URL('fan_anchors_v12.json',dir)));assert(fans.length>=35);assert(fans.some(p=>p.low));assert(fans.some(p=>!p.low));for(const p of fans){assert(t.raw(p.x,p.z)!=null);assert(Math.abs(t.raw(p.x,p.z)-p.rootY)<.03,'fan root must sit on the actual floor');}
+console.log('PASS original textured fans across multiple natural growth levels');
 
 // Prevent the stream from breaking into disconnected polygon puddles at the ford.
 const THREE=await import('three');
@@ -31,3 +28,9 @@ const {riverPoints}=await import('../src/living-world.js');
 const creek=new THREE.CatmullRomCurve3(riverPoints.map(p=>new THREE.Vector3(p[0],p[2],p[1])),false,'catmullrom',.12);
 for(let i=0;i<=120;i++){const p=creek.getPoint(i/120);assert(t.raw(p.x,p.z)<p.y-.015,'river bed emerges through its water surface at '+i);}
 console.log('PASS continuous creek bed under the water surface across the natural ford');
+
+for(let i=0;i<t.heights.length;i++){const [x,z]=t.coordinates(i);if(Math.hypot(x,z)<34.5)assert(t.heights[i]!=null,'unexpected hole in interior floor');}
+const collision=JSON.parse(fs.readFileSync(new URL('collisions_v12.json',dir)));assert(collision.source.includes('exact visible mesh BVH'));const oldBlocked=new Set(JSON.parse(fs.readFileSync(new URL('collisions_v10.json',dir))).blocked);const removed=[...oldBlocked].filter(i=>!t.blocked.has(i)&&t.safe.has(i));assert(removed.length>1000,'old invisible source footprints must become walkable');for(const i of removed){const [x,z]=t.coordinates(i);assert(t.canMove(x,z,t.height(x,z)));}
+console.log('PASS continuous interior floor and collisions rebuilt only from current visible geometry');
+
+let dry=0;for(let i=0;i<t.heights.length;i++){const [x,z]=t.coordinates(i);if(t.canMove(x,z,t.height(x,z)))dry++;}assert(t.safe.size/dry>.99,'broad walkable land must not be partitioned by ghost walls');console.log('PASS over 99% of unobstructed dry ground belongs to the main connected walking area');
