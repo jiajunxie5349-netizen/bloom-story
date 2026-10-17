@@ -1,11 +1,8 @@
 import * as THREE from 'three';
-import {woodlandMaterial,organicCap} from './woodland-material.js';
-import {canopyLayout} from './canopy-layout.js';
 export function addCanopy(scene,terrain,targets){
- const capGeo=organicCap(),capMat=woodlandMaterial('cap'),stemMat=woodlandMaterial('stem');const caps=new THREE.InstancedMesh(capGeo,capMat,canopyLayout.length),stems=new THREE.InstancedMesh(new THREE.CylinderGeometry(.075,.14,1,16,12),stemMat,canopyLayout.length);scene.add(caps,stems);caps.castShadow=caps.receiveShadow=stems.castShadow=stems.receiveShadow=true;const dummy=new THREE.Object3D();
- canopyLayout.forEach((p,i)=>{const h=terrain.height(p.x,p.z);dummy.rotation.set(0,i*2.4,0);dummy.position.set(p.x,h+p.height,p.z);dummy.scale.set(p.radius,p.radius,p.radius);dummy.updateMatrix();caps.setMatrixAt(i,dummy.matrix);dummy.position.y=h+p.height*.5;dummy.scale.set(1,p.height,1);dummy.updateMatrix();stems.setMatrixAt(i,dummy.matrix);terrain.obstacles.push({x:p.x,z:p.z,radius:.14});});
+ const capMat=new THREE.MeshStandardMaterial();
  // Fictional violet infestation, distinct from the native plants it covers.
  const infestation=new THREE.Group();scene.add(infestation);const shade=new THREE.MeshStandardMaterial({color:'#49374d',roughness:.8,emissive:'#543465',emissiveIntensity:.18});const patches=targets.filter(t=>t.type==='soil'||t.type==='survey'&&t.index===1).map(t=>{const group=new THREE.Group();group.position.copy(t.position);infestation.add(group);for(let j=0;j<5;j++){const h=.4+j*.08,curve=new THREE.CatmullRomCurve3([new THREE.Vector3(Math.sin(j)*.6,0,Math.cos(j)*.6),new THREE.Vector3(Math.sin(j)*.4,h*.6,Math.cos(j)*.4),new THREE.Vector3(Math.sin(j+.7)*.5,h,Math.cos(j+.7)*.5)]);const m=new THREE.Mesh(new THREE.TubeGeometry(curve,16,.025,6,false),shade);group.add(m);}return {group,target:t,health:0};});
- return {collisionMeshes:[caps,stems],update(time,repair,progress,reduced,dt){capMat.color.lerpColors(new THREE.Color('#938c80'),new THREE.Color('#c5af83'),repair);for(const p of patches){const healed=p.target.type==='soil'?progress.soils.includes(p.target.index):progress.barriers.length>0;p.health=THREE.MathUtils.damp(p.health,healed?1:0,1.4,dt);p.group.scale.setScalar(Math.max(.001,1-p.health));p.group.visible=p.health<.99;}}};
+ return {collisionMeshes:[],update(time,repair,progress,reduced,dt){capMat.color.lerpColors(new THREE.Color('#938c80'),new THREE.Color('#c5af83'),repair);for(const p of patches){const healed=p.target.type==='soil'?progress.soils.includes(p.target.index):progress.barriers.length>0;p.health=THREE.MathUtils.damp(p.health,healed?1:0,1.4,dt);p.group.scale.setScalar(Math.max(.001,1-p.health));p.group.visible=p.health<.99;}}};
 }
 
