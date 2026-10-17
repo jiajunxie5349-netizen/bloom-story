@@ -2,7 +2,7 @@ export const gardenSpawn=[0,14];
 export const GARDEN_KEY='floraverse.light-garden.v1';
 export const beds=[]; // Legacy import retained; there are no artificial planting beds.
 export const valleyRocks=[{x:-17,z:1,radius:1.1},{x:17,z:0,radius:.9},{x:-4,z:-22,radius:1.3},{x:12,z:20,radius:.85}];
-export function gardenHeight(x,z){const r=Math.hypot(x,z),angle=Math.atan2(x,z),edge=31.4+.7*Math.sin(angle*3)+.35*Math.cos(angle*5);return -.4+.16*Math.sin(x*.19)*Math.cos(z*.17)+.08*Math.sin(z*.33+x*.11)+Math.min(6,Math.max(0,r-edge)**2*.18);}
+export function gardenHeight(x,z){const r=Math.hypot(x,z),angle=Math.atan2(x,z),edge=31.4+.7*Math.sin(angle*3)+.35*Math.cos(angle*5);return -.4+.16*Math.sin(x*.19)*Math.cos(z*.17)+.08*Math.sin(z*.33+x*.11)+Math.min(6,Math.max(0,r-edge)**2*.18)*(.9+.18*Math.sin(angle*3)+.1*Math.cos(angle*7));}
 export function gardenSlope(x,z){return Math.hypot((gardenHeight(x+.1,z)-gardenHeight(x-.1,z))/.2,(gardenHeight(x,z+.1)-gardenHeight(x,z-.1))/.2);}
 export const gardenSites=[
  {x:-10,z:10,name:'苔石觀測點',symbol:'⌕'},
