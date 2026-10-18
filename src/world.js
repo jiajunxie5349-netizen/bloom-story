@@ -1,3 +1,4 @@
+import {buildOcclusionIndex} from './camera-occlusion.js';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
@@ -128,7 +129,7 @@ export async function createWorld(canvas, settings, onStatus) {
     const velocity=new THREE.Vector3(),move=new THREE.Vector3(),desiredCamera=new THREE.Vector3(),look=new THREE.Vector3();
     const cameraRay=new THREE.Raycaster();cameraRay.far=12;
     const collisionArt=[];forest.traverse(o=>{if(o.isMesh&&o.visible&&!o.name.toLowerCase().startsWith('water'))collisionArt.push(o);});
-    collisionArt.push(...lotus.collisionMeshes,...canopy.collisionMeshes);let cameraCollisionTimer=0,occlusionDistance=12;
+    collisionArt.push(...lotus.collisionMeshes,...canopy.collisionMeshes);scene.updateMatrixWorld(true);const cameraOcclusion=buildOcclusionIndex(collisionArt);let cameraCollisionTimer=0,occlusionDistance=12;
     function resize(){
       renderer.shadowMap.enabled=quality==='high';
       const max=quality==='high'?1.75:quality==='low'?1:1.5;
@@ -165,7 +166,7 @@ export async function createWorld(canvas, settings, onStatus) {
       desiredCamera.set(Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),Math.cos(yaw)*Math.cos(pitch));
       // Only 8 art raycasts/sec; ground following uses O(1) precomputed terrain samples.
       cameraCollisionTimer+=dt;
-      if(cameraCollisionTimer>.125){cameraCollisionTimer=0;scene.updateMatrixWorld(true);cameraRay.set(look,desiredCamera);cameraRay.far=distance;const hit=cameraRay.intersectObjects(collisionArt,false).find(h=>h.distance>1);occlusionDistance=hit?Math.max(1.2,hit.distance-.35):12;}
+      if(cameraCollisionTimer>.125){cameraCollisionTimer=0;cameraRay.set(look,desiredCamera);const hit=cameraOcclusion.nearest(cameraRay.ray,1,distance);occlusionDistance=hit===null?12:Math.max(1.2,hit-.35);}
       desiredCamera.multiplyScalar(Math.min(distance,occlusionDistance)).add(look);
       const outer=Math.hypot(desiredCamera.x,desiredCamera.z);if(outer>36){desiredCamera.x*=36/outer;desiredCamera.z*=36/outer;}
       const floor=terrain.raw(desiredCamera.x,desiredCamera.z);if(floor!==null&&floor!==undefined)desiredCamera.y=Math.max(desiredCamera.y,floor+.35);
