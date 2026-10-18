@@ -34,3 +34,13 @@ const collision=JSON.parse(fs.readFileSync(new URL('collisions_v12.json',dir)));
 console.log('PASS continuous interior floor and collisions rebuilt only from current visible geometry');
 
 let dry=0;for(let i=0;i<t.heights.length;i++){const [x,z]=t.coordinates(i);if(t.canMove(x,z,t.height(x,z)))dry++;}assert(t.safe.size/dry>.99,'broad walkable land must not be partitioned by ghost walls');console.log('PASS over 99% of unobstructed dry ground belongs to the main connected walking area');
+
+// Compare accelerated camera queries with Three.js triangle raycasting, including
+// negative directions, transformed geometry, grid edges and ignored near hits.
+const {buildOcclusionIndex}=await import('../src/camera-occlusion.js');
+const props=[];const mat=new THREE.MeshBasicMaterial({side:THREE.DoubleSide});
+for(let i=0;i<240;i++){const m=new THREE.Mesh(new THREE.SphereGeometry(.35+(i%4)*.1,12,8),mat);m.position.set((i%20-10)*2.3,Math.floor(i/20)%4*.7,Math.floor(i/20-6)*2.3);m.rotation.set(i*.1,i*.3,i*.07);m.scale.set(1,.7+i%3*.2,1);m.updateMatrixWorld(true);props.push(m);}
+const spatial=buildOcclusionIndex(props),raycaster=new THREE.Raycaster();let acceleratedTests=0;
+for(let i=0;i<160;i++){const origin=new THREE.Vector3(Math.sin(i*2.4)*22,1+Math.sin(i*.8),Math.cos(i*1.7)*13),direction=props[i%props.length].position.clone().sub(origin).normalize();raycaster.set(origin,direction);raycaster.far=40;const brute=raycaster.intersectObjects(props,false).find(h=>h.distance>.1)?.distance??null,fast=spatial.nearest(raycaster.ray,.1,40);assert.equal(fast===null,brute===null);if(brute!==null)assert(Math.abs(fast-brute)<.0001,'camera collision mismatch');acceleratedTests+=spatial.lastTested;}
+for(const direction of [new THREE.Vector3(1,0,0),new THREE.Vector3(-1,0,0),new THREE.Vector3(0,0,1),new THREE.Vector3(0,1,0)]){raycaster.set(new THREE.Vector3(0,0,0),direction);raycaster.far=30;const brute=raycaster.intersectObjects(props,false).find(h=>h.distance>.1)?.distance??null,fast=spatial.nearest(raycaster.ray,.1,30);assert.equal(fast===null,brute===null);if(brute!==null)assert(Math.abs(fast-brute)<.0001);}
+assert(acceleratedTests<spatial.triangleCount*160*.1,'camera lookup must avoid scanning the whole forest');console.log('PASS camera spatial index matches 164 full-mesh rays while testing under 10% of triangles');
