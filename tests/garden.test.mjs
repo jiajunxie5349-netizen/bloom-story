@@ -11,7 +11,7 @@ assert(saveGarden(storage,completed));assert.deepEqual(loadGarden(storage),compl
 assert.deepEqual(loadGarden({getItem(){return '{broken';}}),empty);assert.equal(saveGarden({setItem(){throw Error();}},completed),false);
 assert(checkGarden(0,{choice:'source'}));assert(!checkGarden(0,{choice:'color'}));
 const source={fire:'stop',dust:'clean',leaves:'keep'};assert(checkGarden(1,source));for(const key of Object.keys(source))assert(!checkGarden(1,{...source,[key]:'wrong'}));
-assert(checkGarden(2,{turns:[0,1,2],filter:true}));assert(!checkGarden(2,{turns:[0,1,2],filter:false}));assert(!checkGarden(2,{turns:[0,2,1],filter:true}));
+assert(checkGarden(2,{choice:'downwind',filter:true}));assert(!checkGarden(2,{choice:'downwind',filter:false}));assert(!checkGarden(2,{choice:'gone',filter:true}));assert(!checkGarden(2,{turns:[0,1,2],filter:true}));
 assert(checkGarden(3,{mirror:1,choice:'complete'}));assert(!checkGarden(3,{mirror:0,choice:'complete'}));assert(!checkGarden(3,{mirror:1,choice:'light'}));
 // Same clearance as the renderer: a narrow player capsule and actual prop radii.
 const valid=(x,z)=>gardenCanMove(x,z)&&!gardenSites.some((s,i)=>Math.hypot(x-s.x,z-s.z)<(i===1?.7:.5)+.2);
