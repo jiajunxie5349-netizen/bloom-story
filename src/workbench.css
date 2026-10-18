@@ -10,3 +10,10 @@ dialog:has(.workbench){background:radial-gradient(ellipse at top,#304032,#10251f
 .sample{border-radius:35% 35% 12px 12px;background:linear-gradient(#344735aa,#14261d)}
 
 .rain-result{display:flex;gap:14px;justify-content:space-between;flex-wrap:wrap;border-top:1px solid #77998a77;padding:20px 8px 5px;color:#a9d6d4;font-size:13px}.tested .soil-cross-section{background:repeating-linear-gradient(110deg,transparent 0 23px,#92b9cc26 24px 25px,transparent 26px 46px)}
+
+/* One visible decision and an explicit learning result. */
+.lesson-current{margin:12px 0 22px;padding:12px 0 14px;border-bottom:1px solid #c5d39c40;line-height:1.7}.lesson-current>span{color:#d8d9a4;font-size:13px;letter-spacing:.08em}.lesson-current h3{font-size:22px;margin:8px 0}.lesson-current p{margin:8px 0;max-width:65ch}.lesson-result{margin:18px 0;padding:18px 22px;background:linear-gradient(115deg,#73945b28,transparent);border-left:3px solid #b9d18f;line-height:1.9}.lesson-result h3{margin:0 0 10px;color:#e2e9be}.bench-choice small{display:block;max-width:26ch;font-size:12px;line-height:1.6;font-weight:400;color:#c3ccb5;margin-top:7px}.step-controls{position:sticky;bottom:-1px;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#152c23f5;padding:14px 10px;margin-top:25px}.step-controls [data-action=step-next]{background:#cfdbaf;color:#213629;min-height:44px;padding:10px 22px}.step-controls button:disabled{opacity:.42}.bench-actions [data-action=finish]:disabled{display:none}.workbench [data-kind=cleanup] .litter-bed{grid-template-columns:1fr}.bench-feedback{scroll-margin:30px}.bench-scene [hidden],.bench-actions [hidden]{display:none!important}
+
+.lesson-correction{color:#f0d2a4;background:#ad794215;padding:12px 16px}.workbench[data-kind=cleanup] .litter-bed{grid-template-columns:1fr}
+
+.soil-zone:disabled,.biome-slot:disabled{opacity:1;cursor:default}
