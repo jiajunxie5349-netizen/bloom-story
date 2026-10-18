@@ -3,8 +3,8 @@ export const learning={
  evidence:{goal:'從對照樣本推論可能來源，而不是憑水色猜污染種類。',idea:'比較污染進入前後的資料，才能找到值得追查的位置。一次觀測只能建立假說，還需要再次採樣。',steps:['比較 A、B、C、D 的資料，選優先追查的站。','把來源與受影響水域連成路徑。','指出還需要的證據。'],why:'證據比對讓你練習找差異、連因果與保留不確定性。',source:'https://www.epa.gov/caddis/nutrients'},
  water:{goal:'控制來源，避免把污染轉送到別處。',idea:'過量養分會隨逕流進入水域。阻擋污染只是暫時措施；必須停止來源、安排殘留處理，並維持自然清水流動。',steps:['決定是否先控制來源。','把石閘轉向合適的處理區。','安排殘留去向並檢查清水通道。'],why:'水路解謎把「來源—傳播—受體」變成看得見的流向，能辨認轉移污染與真正治理的差別。',source:'https://www.epa.gov/nutrientpollution/sources-and-solutions'},
  cleanup:{goal:'清除人造垃圾，同時保護自然棲地。',idea:'落葉與倒木能提供庇護及有機物；清理不等於把地表掃空。未知滲漏物要標記隔離，清掉垃圾仍不能證明水質安全。',steps:['找一件物品，閱讀細節。','將它收集、保留、隔離或列入監測。','逐件完成，觀察池岸變化。'],why:'找物與分類讓你依物件性質採取行動，避免把自然材料當成垃圾。',source:'https://www.nrcs.usda.gov/conservation-basics/soil/soil-health'},
- soil:{goal:'理解覆蓋、根系與池岸緩衝的不同作用。',idea:'地表覆蓋能減輕雨滴對土壤的衝擊；活根支持土壤生態。修復要符合地況，健康棲地應保留，未知污染不能用新土掩蓋。',steps:['先讀目前地區的條件。','選措施，再放到對應區域。','模擬降雨，解讀不同地況的結果。'],why:'地形配置與降雨回饋讓你將措施和作用配對，而不是背名詞。',source:'https://www.nrcs.usda.gov/sites/default/files/2022-12/nrcs144p2_061991_Overview.pdf'},
- plants:{goal:'依生境選植物，保留棲地多樣性。',idea:'植物需要不同的光照、水分與排水條件。漂亮或種得多並不等於適合；倒木、落葉與通道也是森林的一部分。',steps:['讀三張植物條件卡。','把植物配對到適合的生境。','保留自然材料與探索通道。'],why:'條件配對把適地適種化為可觀察的限制，避免用外形猜物種。',source:'https://www.nrcs.usda.gov/conservation-basics/soil/soil-health/soil-health-on-cropland'},
+ soil:{goal:'理解覆蓋、根系與池岸緩衝的不同作用。',idea:'地表覆蓋能減輕雨滴對土壤的衝擊；活根支持土壤生態。修復要符合地況，健康棲地應保留，未知污染不能用新土掩蓋。',steps:['先讀目前地區的條件。','一次看一區，點選措施會直接放入；再按繼續下一步。','模擬降雨，解讀不同地況的結果。'],why:'地形配置與降雨回饋讓你將措施和作用配對，而不是背名詞。',source:'https://www.nrcs.usda.gov/sites/default/files/2022-12/nrcs144p2_061991_Overview.pdf'},
+ plants:{goal:'依生境選植物，保留棲地多樣性。',idea:'植物需要不同的光照、水分與排水條件。漂亮或種得多並不等於適合；倒木、落葉與通道也是森林的一部分。',steps:['讀三張植物條件卡。','一次看一個生境，點選植物卡會直接放入。','保留自然材料與探索通道。'],why:'條件配對把適地適種化為可觀察的限制，避免用外形猜物種。',source:'https://www.nrcs.usda.gov/conservation-basics/soil/soil-health/soil-health-on-cropland'},
  transfer:{goal:'把修復原理用在新的環境。',idea:'先觀測與確認問題，再控制來源、改善棲地，並持續追蹤。水清與開花是外觀，成效需要可比較的後續資料支持。',steps:['讀新花圃的問題。','排列四項行動順序。','選出能檢驗效果的證據。'],why:'新情境排序檢查你能否轉用原理，而不是重複原題答案。',source:'https://www.epa.gov/caddis/nutrients'}
 };
 export const tour=[

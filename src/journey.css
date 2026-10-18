@@ -10,3 +10,5 @@
 @media(max-width:650px){.bloom-logo{width:260px}#dialog.pause-view{padding:28px 22px;border-radius:5px 38px 5px 24px}.map-shell{top:12px;left:12px}#mini-panel{width:260px}.tour-index{gap:5px}}
 
 .chapter-entry{min-width:0}.chapter-entry .chapter-card{width:100%;height:auto;min-height:330px}.chapter-entry #garden-preview{padding:14px 4px;color:#d1dbad;font-size:13px}
+
+#guide-button small{font-size:12px;letter-spacing:.04em;color:#eef1cf}#guide-button{background:radial-gradient(ellipse,#294735ee,#142d23c9);padding:10px 19px;min-height:48px}#guide-button:focus-visible{outline:2px solid #e1e9b7;outline-offset:5px}

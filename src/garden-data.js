@@ -18,15 +18,15 @@ export function loadGarden(storage){try{return sanitizeGarden(JSON.parse(storage
 export const gardenPercent=p=>p.done.length*20+(p.awakened?20:0);
 export function saveGarden(storage,p){try{storage.setItem(GARDEN_KEY,JSON.stringify(sanitizeGarden(p)));return true;}catch{return false;}}
 export const gardenLessons=[
- {title:'追查灰霧從哪裡來',goal:'比較來源附近與對照位置，形成可查證的假說。',concept:'懸浮微粒是空氣中的固體或液體小粒子。灰霧與氣味只能作線索，不能靠外觀判定種類或安全。',why:'比較資料比憑灰霧顏色猜原因可靠；找差異能幫助選擇調查方向。',source:'https://www.epa.gov/pm-pollution/particulate-matter-pm-basics',prompt:'同時觀測的虛構指數：上風林緣 2、焦黑空地 8、幼苗叢 5。先查哪裡，還缺什麼？',choices:[['flowers','幼苗叢：花最枯，先大量施肥'],['source','焦黑空地：先查來源，再重複觀測'],['color','灰色：已證明只有一種污染物']],answer:'source',feedback:'來源附近指數較高，支持優先調查，還不能證明唯一原因。獲得「觀察之種」。'},
+ {title:'追查灰霧從哪裡來',goal:'比較三處觀測值，找出下一個要調查的位置。',concept:'同樣方式觀測時，數值較高的地方值得先調查，但仍要重複確認。懸浮微粒是空氣中的固體或液體小粒子。灰霧與氣味只能作線索，不能靠外觀判定種類或安全。',why:'比較資料比憑灰霧顏色猜原因可靠；找差異能幫助選擇調查方向。',source:'https://www.epa.gov/pm-pollution/particulate-matter-pm-basics',prompt:'同時觀測的虛構指數：上風林緣 2、焦黑空地 8、幼苗叢 5。先查哪裡，還缺什麼？',choices:[['flowers','幼苗叢：花最枯，先大量施肥'],['source','焦黑空地：先查來源，再重複觀測'],['color','灰色：已證明只有一種污染物']],answer:'source',feedback:'來源附近指數較高，支持優先調查，還不能證明唯一原因。獲得「觀察之種」。'},
  {title:'找到三處需要照顧的物件',goal:'由守谷者處理燃燒來源，玩家整理冷卻垃圾並保留棲地。',concept:'處理來源能減少污染持續進入空氣。把污染吹到別處，或用香味蓋住，都不是消除來源。',why:'逐物件判斷把源頭控制變成具體行動，也避免把所有落葉當垃圾。',source:'https://www.epa.gov/pm-pollution/particulate-matter-pm-basics',prompt:'請老藤處理仍冒煙的來源；你只整理冷卻後的散落物，再保留健康的落葉棲地。點選每件物品，為它選合適行動。',feedback:'來源停止增加，積塵妥善清理，棲地保留。獲得「守護之種」。'},
- {title:'讀懂林谷的風',goal:'追蹤風搬運污染的方向，保留健康植被。',concept:'風能把懸浮微粒帶到下風處；擴散或稀釋不等於污染消失。健康植被是棲地，不是能處理所有污染的萬能濾材。',why:'在俯視線索圖中連接三處風向，推理哪一片幼苗位於下風處。圖上的箭頭記錄風向，不表示玩家能改變山風。',source:'https://www.epa.gov/pm-pollution/particulate-matter-pm-basics',prompt:'沿觀測線索由左上林緣開始：三處風向分別為「向右 → 向下 → 向左」。轉動箭頭記錄風路，並確認保留健康植被。',feedback:'你已讀懂傳播方向；先控制來源，再持續觀察下風處。獲得「流動之種」。'},
- {title:'讓日光回到葉片',goal:'理解植物需要光、水與二氧化碳，不能只靠強光解決所有問題。',concept:'光合作用利用光能、水及二氧化碳製造養分。灰霾影響光線的敘事是藝術化表現；花開不代表空氣已安全。',why:'選擇枯枝形成的葉隙完成故事，再辨認植物所需條件，將視覺回饋連結到概念。',source:'https://science.nasa.gov/earth/earth-observatory/the-carbon-cycle/',prompt:'整理遮光枯枝，讓合適的光抵達幼苗叢，再選出植物完整的需求。',choices:[['light','只有越強的光越好'],['complete','合適的光、水、二氧化碳及生長條件'],['spray','香味與彩色燈就能取代自然條件']],answer:'complete',feedback:'光線回到幼苗叢，仍需適當水分與後續照顧。獲得「生長之種」。'}
+ {title:'讀懂林谷的風',goal:'沿風向找出可能受影響的幼苗，決定還要在哪裡觀測。',concept:'風往哪裡吹，那一側就是下風處。風能把懸浮微粒帶到那裡；擴散或稀釋不等於污染消失。健康植被是棲地，不是能處理所有污染的萬能濾材。',why:'閱讀俯視圖中的觀測風向，推理哪一片幼苗位於下風處，並決定下一個觀測重點。圖上的箭頭記錄風向，不表示玩家能改變山風。',source:'https://www.epa.gov/pm-pollution/particulate-matter-pm-basics',prompt:'風從左上林緣向右，經焦黑空地向下，再從谷地向左吹到幼苗叢。沿圖閱讀風路，判斷下一步應查什麼；箭頭是觀測資料，不需要操作轉向。',feedback:'你已讀懂傳播方向；先控制來源，再持續觀察下風處。獲得「流動之種」。'},
+ {title:'讓日光回到葉片',goal:'替幼苗保留合適光線，再選出光合作用所需的條件。',concept:'光合作用利用光能、水及二氧化碳製造養分。灰霾影響光線的敘事是藝術化表現；花開不代表空氣已安全。',why:'選擇枯枝形成的葉隙完成故事，再辨認植物所需條件，將視覺回饋連結到概念。',source:'https://science.nasa.gov/earth/earth-observatory/the-carbon-cycle/',prompt:'先比較三種葉隙狀態，選擇讓光到達幼苗而保留遮蔭的方式；再選出植物生長需要的條件。',choices:[['light','只有越強的光越好'],['complete','合適的光、水、二氧化碳及生長條件'],['spray','香味與彩色燈就能取代自然條件']],answer:'complete',feedback:'光線回到幼苗叢，仍需適當水分與後續照顧。獲得「生長之種」。'}
 ];
 export function checkGarden(stage,s){
  if(stage===0)return s.choice==='source';
  if(stage===1)return s.fire==='stop'&&s.dust==='clean'&&s.leaves==='keep';
- if(stage===2)return s.turns?.join(',')==='0,1,2'&&s.filter===true;
+ if(stage===2)return s.choice==='downwind'&&s.filter===true;
  if(stage===3)return s.mirror===1&&s.choice==='complete';
  return false;
 }

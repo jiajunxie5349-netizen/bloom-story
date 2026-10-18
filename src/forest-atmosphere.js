@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 // A surrounding forest stays outside the playable boundary; shared instances keep it inexpensive.
-export function addForestAtmosphere(scene,random,groundMaterial,terrain){
+export function addForestAtmosphere(scene,random,groundMaterial,terrain,fanSource=null){
  const group=new THREE.Group();group.name='Surrounding_Forest';scene.add(group);
  // A continuous forest floor and a visible bank match the actual walking limit.
  // These are independent scenery; playable plants and terrain are never scaled together.
@@ -17,6 +17,21 @@ export function addForestAtmosphere(scene,random,groundMaterial,terrain){
  for(let i=0;i<500;i++){bc.strokeStyle=i%3?'#252f25':'#787461';bc.globalAlpha=.12+random()*.24;bc.lineWidth=.5+random()*2;const x=random()*256,y=random()*256;bc.beginPath();bc.moveTo(x,y);bc.bezierCurveTo(x+random()*5,y+15,x-3,y+30,x+2,y+45+random()*65);bc.stroke();}
  const barkTexture=new THREE.CanvasTexture(barkCanvas);barkTexture.colorSpace=THREE.SRGBColorSpace;barkTexture.wrapS=barkTexture.wrapT=THREE.RepeatWrapping;barkTexture.repeat.set(3,2);
  const bark=new THREE.MeshStandardMaterial({map:barkTexture,bumpMap:barkTexture,bumpScale:.12,color:'#707766',roughness:1});
+ const fanMaterials=[];
+ if(fanSource){
+  const templates=[];fanSource.traverse(o=>{if(o.isMesh)templates.push(o);});
+  const stemGeo=new THREE.CylinderGeometry(.07,.13,1,8,12),sp=stemGeo.attributes.position;
+  for(let i=0;i<sp.count;i++){const t=sp.getY(i)+.5;sp.setXYZ(i,sp.getX(i)+.8*t*t,t,sp.getZ(i)+.2*Math.sin(t*Math.PI));}stemGeo.computeVertexNormals();
+  const stems=new THREE.InstancedMesh(stemGeo,bark,48),obj=new THREE.Object3D();group.add(stems);
+  const fans=templates.map(t=>{const mat=t.material.clone();mat.side=THREE.DoubleSide;mat.roughness=.96;mat.metalness=0;mat.envMapIntensity=.02;fanMaterials.push(mat);const mesh=new THREE.InstancedMesh(t.geometry,mat,24);mesh.receiveShadow=true;group.add(mesh);return mesh;});
+  const counts=templates.map(()=>0);
+  for(let i=0;i<48;i++){
+   const a=i*2.39996+(random()-.5)*.7,r=41+random()*15,x=Math.sin(a)*r,z=Math.cos(a)*r,h=outerHeight(x,z)-.025,H=2.2+random()*4.5,R=1.4+random()*2.1,yaw=a+random();
+   obj.position.set(x,h,z);obj.rotation.set(0,yaw,0);obj.scale.set(1,H,1);obj.updateMatrix();stems.setMatrixAt(i,obj.matrix);
+   const k=i%templates.length;obj.position.set(x+.8*Math.cos(yaw),h+H,z-.8*Math.sin(yaw));obj.rotation.set((random()-.5)*.35,yaw,(random()-.5)*.4);obj.scale.setScalar(R);obj.updateMatrix();fans[k].setMatrixAt(counts[k]++,obj.matrix);
+  }
+  fans.forEach((f,i)=>{f.count=counts[i];f.computeBoundingSphere();});stems.computeBoundingSphere();
+ }
  const trunk=new THREE.InstancedMesh(new THREE.CylinderGeometry(.25,.5,1,9,4),bark,105);group.add(trunk);
  const branch=new THREE.InstancedMesh(new THREE.CylinderGeometry(.06,.16,1,7),bark,315);group.add(branch);
  const dummy=new THREE.Object3D();let fi=0,bi=0;
@@ -38,6 +53,6 @@ export function addForestAtmosphere(scene,random,groundMaterial,terrain){
  foliage.count=fi;
  // Low banks close the gap between the land's edge and tree trunks.
  const bank=new THREE.Mesh(new THREE.CylinderGeometry(65,65,5,96,1,true),new THREE.MeshStandardMaterial({color:'#354334',roughness:1,side:THREE.BackSide}));bank.position.y=-4;group.add(bank);
- return {update(restoration,quality){sky.material.uniforms.warmth.value=restoration*.85;leaves.color.setHSL(.10+restoration*.13,.15+restoration*.13,.38+restoration*.13);foliage.count=quality==='low'?Math.floor(fi*.65):fi;}};
+ return {update(restoration,quality){sky.material.uniforms.warmth.value=restoration*.85;leaves.color.setHSL(.10+restoration*.13,.15+restoration*.13,.38+restoration*.13);fanMaterials.forEach(m=>m.color.setHSL(.12+restoration*.08,.10+restoration*.1,.52+restoration*.13));foliage.count=quality==='low'?Math.floor(fi*.65):fi;}};
 }
 
