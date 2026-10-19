@@ -1,7 +1,8 @@
+import {configureRiverWater} from './natural-water.js';
 import * as THREE from 'three';
 import {organicCap,woodlandMaterial} from './woodland-material.js';
 export const riverPoints=[[19,-26,-2.15],[18,-17,-2.25],[16,-8,-2.35],[12,0,-2.45],[8,6,-2.55]];
-export const peripheralLayout=Array.from({length:110},(_,i)=>{const a=i*2.39996,r=i%2?32.2+(i%7)*.16:27.8+(i%4)*.1;return {a,x:Math.cos(a)*r,z:Math.sin(a)*r,scale:.5+(i%9)*.11};});
+export const peripheralLayout=Array.from({length:110},(_,i)=>{const a=i*2.39996,r=24.5+((i*37)%101)/101*9;return {a,x:Math.cos(a)*r,z:Math.sin(a)*r,scale:.5+(i%9)*.11};});
 export function addLivingWorld(scene,terrain,targets){
  const root=new THREE.Group();scene.add(root);
  const bark=new THREE.MeshStandardMaterial({color:'#493c29',roughness:1});
@@ -10,7 +11,7 @@ export function addLivingWorld(scene,terrain,targets){
  const veinCanvas=document.createElement('canvas');veinCanvas.width=veinCanvas.height=128;const vc=veinCanvas.getContext('2d');vc.fillStyle='#a8a683';vc.fillRect(0,0,128,128);vc.strokeStyle='#555c3a';vc.lineWidth=1;vc.beginPath();vc.moveTo(64,0);vc.lineTo(64,128);for(let i=12;i<128;i+=12){vc.moveTo(64,i);vc.quadraticCurveTo(32,i-12,0,i-22);vc.moveTo(64,i);vc.quadraticCurveTo(94,i-12,128,i-22);}vc.stroke();const veinMap=new THREE.CanvasTexture(veinCanvas);veinMap.colorSpace=THREE.SRGBColorSpace;leafMat.map=veinMap;leafMat.bumpMap=veinMap;leafMat.bumpScale=.012;
  function add(geo,mat,x,y,z,parent=root){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
  // Shared, curved leaflets and smooth mushroom profiles populate the new
- // outer land. The walking ring r=30 is explicitly kept open.
+ // outer land. Soft ground foliage overlaps the narrow traversable gaps.
  const leaf=new THREE.SphereGeometry(1,12,6);leaf.scale(.085,.015,.30);
  const stem=new THREE.CylinderGeometry(.035,.07,.8,10);
  const cap=organicCap();cap.scale(.42,.42,.42);const capMat=woodlandMaterial('cap');
@@ -30,7 +31,7 @@ export function addLivingWorld(scene,terrain,targets){
  for(let i=0;i<=240;i++){const t=i/240,p=curve.getPoint(t),d=curve.getTangent(t),len=Math.hypot(d.x,d.z),nx=-d.z/len,nz=d.x/len,baseWidth=.77+Math.sin(t*14+.7)*.13+Math.sin(t*31+1.4)*.07;let w=baseWidth*THREE.MathUtils.smoothstep(t,0,.045);while(w>.14&&[1,-1].some(side=>(terrain.raw(p.x+nx*w*side,p.z+nz*w*side)??-3.3)>p.y-.04))w*=.9;for(const side of [-1,1]){positions.push(p.x+nx*w*side,p.y,p.z+nz*w*side);uv.push((side+1)/2,t*4);}if(i<240){const n=i*2;indices.push(n,n+2,n+1,n+1,n+2,n+3);}}
  const rg=new THREE.BufferGeometry();rg.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));rg.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));rg.setIndex(indices);rg.computeVertexNormals();
  const water=new THREE.MeshPhysicalMaterial({color:'#3d394b',roughness:.38,metalness:0,envMapIntensity:.035,specularIntensity:.24,transparent:true,depthWrite:false,side:THREE.DoubleSide});const clock={value:0},riverHeal={value:0};
- water.onBeforeCompile=s=>{s.uniforms.uFlow=clock;s.uniforms.uRiverHeal=riverHeal;s.vertexShader='uniform float uFlow; varying vec2 vRiver;\n'+s.vertexShader;s.vertexShader=s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvRiver=uv;transformed.y+=sin(uv.y*13.-uFlow*.7+sin(uv.x*9.))*.008;');s.fragmentShader='uniform float uFlow;uniform float uRiverHeal;varying vec2 vRiver;\n'+s.fragmentShader;s.fragmentShader=s.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\nfloat stream=pow(max(0.,sin(vRiver.y*17.+sin(vRiver.y*4.7+vRiver.x*6.3)*1.8-uFlow*.7)*sin(vRiver.y*7.1-vRiver.x*5.3+uFlow*.43)),14.);diffuseColor.a*=smoothstep(0.,.12,vRiver.x)*(1.-smoothstep(.88,1.,vRiver.x));diffuseColor.rgb=mix(vec3(.035,.027,.048),vec3(.025,.085,.075),uRiverHeal)+stream*vec3(.008,.011,.012);');s.fragmentShader=s.fragmentShader.replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nnormal=normalize(normal+vec3(sin(vRiver.y*13.+sin(vRiver.x*7.+uFlow*.27)-uFlow*.62)*.045,cos(vRiver.y*8.3-vRiver.x*11.+uFlow*.48)*.035,0.));');};
+ configureRiverWater(water,clock,riverHeal);
  const streamMesh=add(rg,water,0,0,0);streamMesh.castShadow=false;
  // The bridge deck and baked walk surface share the same top elevation.
  // The existing crossing remains walkable, dressed as an irregular natural gravel shoal.

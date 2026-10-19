@@ -1,8 +1,17 @@
+import {addInteractionDetails} from './interaction-details.js';
 import * as THREE from 'three';
 export function createTaskSite(type,index,label){
- const group=new THREE.Group(),objects=[],earth=new THREE.MeshStandardMaterial({color:'#594b33',roughness:1}),bronze=new THREE.MeshStandardMaterial({color:'#6f7350',roughness:.83,metalness:.15}),plastic=new THREE.MeshStandardMaterial({color:'#4b716b',roughness:.6,metalness:0});
+ const group=new THREE.Group(),objects=[],earth=new THREE.MeshStandardMaterial({color:'#594b33',roughness:1}),bronze=new THREE.MeshStandardMaterial({color:'#6f7350',roughness:.83,metalness:0}),plastic=new THREE.MeshStandardMaterial({color:'#4b716b',roughness:.6,metalness:0});
  function mesh(geo,mat,x,y,z){const o=new THREE.Mesh(geo,mat);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;group.add(o);objects.push(o);return o;}
- function bottle(x,z,s=1){const o=mesh(new THREE.CylinderGeometry(.065,.085,.28,16),plastic,x,.16*s,z);o.scale.setScalar(s);mesh(new THREE.CylinderGeometry(.027,.04,.07,12),bronze,x,.33*s,z);return o;}
+ function bottle(x,z,s=1){
+  const profile=[[.055,0],[.082,.018],[.085,.05],[.078,.22],[.045,.27],[.028,.285],[.028,.34]].map(p=>new THREE.Vector2(...p));
+  const o=mesh(new THREE.LatheGeometry(profile,16),plastic,x,.02,z);o.scale.setScalar(s);
+  const lip=mesh(new THREE.TorusGeometry(.031*s,.009*s,5,16),bronze,x,.36*s,z);lip.rotation.x=Math.PI/2;
+  mesh(new THREE.CylinderGeometry(.034*s,.034*s,.035*s,12),bronze,x,.375*s,z);
+  const label=mesh(new THREE.CylinderGeometry(.086*s,.086*s,.075*s,16,1,true),new THREE.MeshStandardMaterial({color:'#d7c69a',roughness:.88}),x,.14*s,z);
+  for(let j=0;j<3;j++)mesh(new THREE.BoxGeometry(.022*s,.006*s,.008*s),bronze,x+.018*s,.13*s+j*.025*s,z+.086*s);
+  return o;
+ }
  let focus,rock=null,radius=0;
  if(type==='survey'){
 
@@ -45,5 +54,6 @@ export function createTaskSite(type,index,label){
  const canvas=document.createElement('canvas');canvas.width=640;canvas.height=120;const ctx=canvas.getContext('2d');ctx.fillStyle='rgba(14,35,27,.92)';ctx.beginPath();ctx.roundRect(2,2,636,116,20);ctx.fill();ctx.strokeStyle='#b6be7f';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle='#e4e5c7';ctx.font='30px "Microsoft JhengHei",sans-serif';ctx.textAlign='center';ctx.fillText(label,320,51);ctx.fillStyle='#d9bd7c';ctx.font='23px "Microsoft JhengHei",sans-serif';ctx.fillText('接近後按 E 調查',320,91);
  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
  const sign=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,depthTest:false,transparent:true}));sign.position.set(.7,1.55,0);sign.scale.set(2.5,.47,1);group.add(sign);
- return {group,focus,ring,sign,rock,radius,objects,plantMaterial:bronze};
+ const detail=addInteractionDetails(group,type,index);
+ return {group,focus,ring,sign,rock,radius,objects,detail,plantMaterial:bronze};
 }

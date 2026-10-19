@@ -1,3 +1,4 @@
+import {touchesSolid} from './forest-detail-layout.js';
 export class Terrain {
   constructor(data, collisions={}) { Object.assign(this, data); this.blocked=new Set(collisions.blocked??[]);this.obstacles=[]; this.reachable = new Set(); }
   index(x,z) { const ix=Math.round((x-this.min)/this.step), iz=Math.round((z-this.min)/this.step); return ix>=0&&iz>=0&&ix<this.size&&iz<this.size ? iz*this.size+ix : -1; }
@@ -57,7 +58,7 @@ export class Terrain {
   }
   canMove(x,z,oldY) {
     const y=this.height(x,z); if(y==null||this.blocked.has(this.index(x,z))||Math.abs(y-oldY)>.36)return false;
-    if(this.obstacles.some(o=>Math.hypot(x-o.x,z-o.z)<o.radius+.19))return false;
+    if(this.obstacles.some(o=>touchesSolid(x,z,o)))return false;
     return [[.12,0],[-.12,0],[0,.12],[0,-.12]].every(([a,b])=>this.height(x+a,z+b)!=null);
   }
 }

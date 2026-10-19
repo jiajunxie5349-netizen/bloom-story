@@ -1,3 +1,5 @@
+import {configureLakeWater,addSubmergedStones} from './natural-water.js';
+import {addForestDetails} from './forest-details.js';
 import {batchPlants} from './plant-batches.js';
 import {applyLayout,validateLayout,layoutSignature} from './scene-layout.js';
 import {mineralBotany} from './mineral-botany.js';
@@ -68,10 +70,7 @@ export async function createWorld(canvas, settings, onStatus) {
     }
     const shoreCanvas=document.createElement('canvas');shoreCanvas.width=shoreCanvas.height=terrain.size;const shoreContext=shoreCanvas.getContext('2d'),shoreImage=shoreContext.createImageData(terrain.size,terrain.size);
     terrain.heights.forEach((h,i)=>{const v=h==null?0:Math.max(0,Math.min(1,(h+3.05)/.65));shoreImage.data.set([v*255,v*255,v*255,255],i*4);});shoreContext.putImageData(shoreImage,0,0);const shoreMap=new THREE.CanvasTexture(shoreCanvas);shoreMap.flipY=false;
-    worldSurface(waterMaterial,'vec2 wp=vHabitatPosition.xz;float drift=earthNoise(wp*.37+vec2(uWaterTime*.024,-uWaterTime*.015));vec2 swirl=vec2(earthNoise(wp*.23+uWaterTime*.008),earthNoise(wp*.19+37.-uWaterTime*.007));float stain=earthNoise(wp*.8+swirl*4.);float eddy=pow(1.-abs(stain*2.-1.),14.);vec3 murky=mix(vec3(.020,.017,.030),vec3(.042,.030,.051),drift);vec3 clean=mix(vec3(.075,.20,.22),vec3(.14,.32,.33),drift);diffuseColor.rgb=mix(murky+vec3(.008,.002,.012)*eddy,clean,uHabitat);float bank=texture2D(uShore,(wp+36.)/72.).r;float foam=0.;float shallows=smoothstep(.20,.72,bank);diffuseColor.rgb*=mix(.78,1.02,shallows);diffuseColor.rgb+=mix(vec3(.011,.006,.012),vec3(.009,.024,.016),uHabitat)*shallows;if(bank>.86)discard;diffuseColor.a=1.;diffuseColor.rgb+=mix(vec3(.014,.011,.009),vec3(.025,.033,.028),uHabitat)*foam;diffuseColor.rgb+=vec3(.004,.006,.005)*pow(max(0.,sin(wp.x*3.1+wp.y*1.4+uWaterTime*.7)*sin(wp.y*2.6-wp.x*1.7-uWaterTime*.5)),16.);',{uWaterTime:waterTime,uHabitat:waterHealth,uShore:{value:shoreMap}});
-    const shoreCompile=waterMaterial.onBeforeCompile;waterMaterial.onBeforeCompile=shader=>{shoreCompile(shader);shader.fragmentShader='uniform sampler2D uShore;\n'+shader.fragmentShader;};
-    const compileWater=waterMaterial.onBeforeCompile;
-    waterMaterial.onBeforeCompile=shader=>{compileWater(shader);shader.vertexShader='uniform float uWaterTime;\n'+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ntransformed.y+=(sin(position.x*.9+uWaterTime*.8)+cos(position.z*1.1-uWaterTime*.7))*.012;');shader.fragmentShader=shader.fragmentShader.replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nnormal=normalize(normal+vec3((sin(vHabitatPosition.x*2.3+vHabitatPosition.z*1.7+uWaterTime*.9)+sin(vHabitatPosition.x*1.2-vHabitatPosition.z*2.4+uWaterTime*.65))*.012,0.,(cos(vHabitatPosition.z*1.9+vHabitatPosition.x*1.4-uWaterTime*.7)+sin(vHabitatPosition.z*2.8-vHabitatPosition.x*1.2+uWaterTime*.45))*.012));');};
+    configureLakeWater(waterMaterial,waterTime,waterHealth,shoreMap);
     const groundMaterial=new THREE.MeshStandardMaterial({color:'#a5a98c',roughness:1,metalness:0,envMapIntensity:0});
     worldSurface(groundMaterial,'float heal=max(uHabitat*.25,max(uRepair0.w*(1.-smoothstep(1.,7.,distance(vHabitatPosition.xz,uRepair0.xy))),max(uRepair1.w*(1.-smoothstep(1.,7.,distance(vHabitatPosition.xz,uRepair1.xy))),uRepair2.w*(1.-smoothstep(1.,7.,distance(vHabitatPosition.xz,uRepair2.xy))))));diffuseColor.rgb=woodlandFloor(vHabitatPosition.xz,heal);',{uHabitat:habitat,uRepair0:repairs[0],uRepair1:repairs[1],uRepair2:repairs[2]});
     const waterMeshes=[];
@@ -88,7 +87,7 @@ export async function createWorld(canvas, settings, onStatus) {
         if(/Oxidized|Rust red|Weathered/.test(m.name))worldSurface(m,'float patina=earthNoise(vHabitatPosition.xz*8.+vHabitatPosition.yy*3.);float mottling=earthNoise(vHabitatPosition.xz*25.);diffuseColor.rgb*=.58+patina*.43+mottling*.16;');
       }
     });scene.add(forest);const continuousGround=sculptedGround(terrain,groundMaterial);scene.add(continuousGround);const mineral=mineralBotany(v.scene,habitat);if(!editing)batchPlants(v.scene);
-    const poolGeo=new THREE.PlaneGeometry(72,72,240,240);poolGeo.rotateX(-Math.PI/2);const pool=new THREE.Mesh(poolGeo,waterMaterial);pool.position.y=-2.48;pool.name='Continuous_bed_masked_water';scene.add(pool);waterMeshes.push(pool);const lakeEcology=addLakeEcology(scene,terrain,fanSource.scene);
+    const poolGeo=new THREE.PlaneGeometry(72,72,240,240);poolGeo.rotateX(-Math.PI/2);const pool=new THREE.Mesh(poolGeo,waterMaterial);pool.position.y=-2.48;pool.name='Continuous_bed_masked_water';scene.add(pool);waterMeshes.push(pool);const lakeEcology=addLakeEcology(scene,terrain,fanSource.scene);addSubmergedStones(scene,terrain);
     const player=new THREE.Group();guardian.scale.setScalar(.65);player.add(guardian);scene.add(player);
     guardian.traverse(o=>{if(!o.isMesh)return;o.castShadow=true;if(o.name==='Sprite_Core'){o.material.color.set('#49622b');o.material.emissive.set('#8ca453');o.material.emissiveIntensity=.18;o.material.roughness=.6;}else if(/Hand/.test(o.name)){o.material.color.set('#9eaf72');o.material.emissiveIntensity=.18;}else if(!/Sprout/.test(o.name)){o.material.roughness=.83;o.material.metalness=.08;}});
     // Open leaf envelope around the existing core, matching the supplied character study.
@@ -120,6 +119,7 @@ export async function createWorld(canvas, settings, onStatus) {
     }
     for(const t of mapLayout.sites)marker(t.type,t.index,t.x,t.z,t.label);
     const seed=targets.at(-1);
+    const details=addForestDetails(scene,terrain,[...mapLayout.sites,{x:0,z:7.5},{x:-3,z:23},{x:5,z:10}]);terrain.obstacles.push(...details.solids);
     const living=addLivingWorld(scene,terrain,targets);const npcs=living.npcs;
     const lotus={collisionMeshes:[],update(){}};const canopy=addCanopy(scene,terrain,targets);
     terrain.connect(...mapLayout.spawn);player.position.copy(at(...mapLayout.spawn));
@@ -142,7 +142,7 @@ export async function createWorld(canvas, settings, onStatus) {
     let yaw=0,pitch=.38,distance=8,targetDistance=8,quality=settings.quality,restoration=0;
     const velocity=new THREE.Vector3(),move=new THREE.Vector3(),desiredCamera=new THREE.Vector3(),look=new THREE.Vector3();
     const cameraRay=new THREE.Raycaster();cameraRay.far=12;
-    const collisionArt=[];forest.traverse(o=>{if(o.isMesh&&o.visible&&!o.name.toLowerCase().startsWith('water'))collisionArt.push(o);});
+    const collisionArt=[];details.root.traverse(o=>{if(o.isMesh&&!o.isInstancedMesh)collisionArt.push(o);});forest.traverse(o=>{if(o.isMesh&&o.visible&&!o.name.toLowerCase().startsWith('water'))collisionArt.push(o);});
     collisionArt.push(...landmarks.collisionMeshes,...lotus.collisionMeshes,...canopy.collisionMeshes);scene.updateMatrixWorld(true);const cameraOcclusion=buildOcclusionIndex(collisionArt);let cameraCollisionTimer=0,occlusionDistance=12;
     function resize(){
       renderer.shadowMap.enabled=quality==='high';
@@ -189,11 +189,11 @@ export async function createWorld(canvas, settings, onStatus) {
       }
       restoration=THREE.MathUtils.damp(restoration,progress.ritual?1:progress.barriers.length*.06+progress.soils.length*.18,1,dt);
       habitat.value=restoration;mineral.update(restoration);waterTime.value=reduced?0:time;
-      waterMaterial.color.lerpColors(pollutedWater,clearWater,restoration);
+      waterMaterial.color.set('white');
       waterMaterial.emissiveIntensity=0;waterHealth.value=THREE.MathUtils.damp(waterHealth.value,(progress.barriers.length===2?.2:0)+(progress.soils.includes(0)?.35:0)+(progress.soils.includes(1)?.25:0)+(progress.ritual?.2:0),.65,dt);ambient.intensity=.85+restoration*1.15;moon.intensity=1.3+restoration*.65;warm.intensity=.25+restoration*.8;seasonalMaterials.forEach(({material,original,sculpted})=>material.color.copy(original).multiply(new THREE.Color().lerpColors(new THREE.Color(sculpted?'#d5d3cb':'#95826b'),new THREE.Color(sculpted?'#eeefde':material.name.includes('leaf')?'#8fbd79':'#b9cca1'),restoration)));particles.material.opacity=.12+restoration*.53;scene.fog.color.lerpColors(darkFog,livingFog,restoration*.65);scene.background.copy(scene.fog.color);
       repairs.forEach((r,i)=>{const t=targets.find(t=>t.type==='soil'&&t.index===i);r.value.set(t.position.x,t.position.z,0,THREE.MathUtils.damp(r.value.w,progress.soils.includes(i)?1:0,1.8,dt));});
       landmarks.update(restoration);lakeEcology.update(waterHealth.value);atmosphere.update(restoration,quality);lotus.update(time,restoration,reduced);canopy.update(time,restoration,progress,reduced,dt);
-      growth.update(repairs.map(r=>r.value.w),progress.ritual,quality,time,reduced,player.position,jumpHeight);living.update(time,restoration,progress,reduced);
+      growth.update(repairs.map(r=>r.value.w),progress.ritual,quality,time,reduced,player.position,jumpHeight);living.update(time,restoration,progress,reduced);details.update(time,restoration,player.position,reduced);
       const available=new Set(activeTargets(stage,progress));
       for(const t of targets){
         const done=t.type==='survey'?progress.scanned.includes(t.index)&&!(progress.scanned.length===3&&!progress.evidence):t.type==='isolate'?progress.barriers.includes(t.index):t.type==='soil'?progress.soils.includes(t.index):progress.ritual;
@@ -205,6 +205,7 @@ export async function createWorld(canvas, settings, onStatus) {
         const siteDistance=Math.hypot(player.position.x-t.interactionPosition.x,player.position.z-t.interactionPosition.z);
         t.sign.visible=(((scan&&t===guideTarget&&siteDistance<12)||t===hintTarget)||(available.has(t)&&siteDistance<7))&&siteDistance>2.1;
         t.ring.visible=(t.ring.visible&&scan)||t===hintTarget;
+        t.detail?.update(time,done,player.position.distanceTo(t.position)<4,reduced);
         if(t.type==='soil'&&t.index===0&&done)t.objects.forEach(o=>o.visible=false);
         if(t.type==='soil'&&t.index===2)t.plantMaterial.color.set(done?'#718b49':'#6c5034');
         t.crystal.visible=!(t.type==='soil'&&t.index===0&&done);t.ring.material.opacity=t===guideTarget?.5:.12;
