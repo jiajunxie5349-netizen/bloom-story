@@ -21,7 +21,7 @@ export function floorScatter(terrain,seed=713,spacing=.18){
   const px=x+random()*spacing,pz=z+random()*spacing;
   if(Math.hypot(px,pz)>terrain.radius-.25)continue;
   const y=terrain.height(px,pz),raw=terrain.raw(px,pz);
-  if(y==null||raw==null||raw<=-2.15)continue;
+  if(y==null||raw==null||raw<=-2.38)continue;
   // Leave only little litter openings, rather than bare rows between grass clumps.
   if(random()<.07)continue;
   points.push({x:px,y:y-.018,z:pz,angle:random()*Math.PI*2,scale:.65+random()*.85});
