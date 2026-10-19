@@ -6,7 +6,7 @@ import {addUnderstory} from './meadow.js';
 import {floorNoise} from './forest-floor.js';
 import {addForestAtmosphere} from './forest-atmosphere.js';
 import {addLivingLandmarks} from './living-landmarks.js';
-import {woodlandMaterial,organicCap} from './woodland-material.js';
+import {woodlandMaterial,organicCap,organicRock} from './woodland-material.js';
 import {breatheGuardian} from './guardian-life.js';
 import {buildOcclusionIndex} from './camera-occlusion.js';
 
@@ -60,7 +60,7 @@ export async function createBiomeWorld(canvas,chapter,settings){
    const islandGeo=new THREE.SphereGeometry(1,40,24),ip=islandGeo.attributes.position;for(let k=0;k<ip.count;k++){const px=ip.getX(k),py=ip.getY(k),pz=ip.getZ(k),d=1+.08*Math.sin(px*7+pz*5)*Math.sin(py*5);ip.setXYZ(k,px*d,py>0?py*.6:py*2.2,pz*d);}islandGeo.computeVertexNormals();make(islandGeo,new THREE.MeshStandardMaterial({color:'#666c5c',roughness:1}),new THREE.Vector3(x,y,z),new THREE.Vector3(R,R*.6,R));const top=new THREE.Vector3(x,y+R*.36,z),leafPoint=top.clone().add(new THREE.Vector3(.25,1.6,.15));makeLeaf(leafPoint,R*.65,angle);make(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(top,top.clone().add(new THREE.Vector3(-.2,1,.1)),leafPoint),14,.14,8,false),bark,new THREE.Vector3());
   }
   const z=-24,x=Math.sin(z*.17)*3+2,y=height(x,z);
-  const cliff=make(new THREE.SphereGeometry(1,40,24),new THREE.MeshStandardMaterial({color:'#68705d',roughness:1}),new THREE.Vector3(x,y+5,-27),new THREE.Vector3(5.2,5.5,3.3));cameraMeshes.push(cliff);
+  const cliff=make(organicRock(),woodlandMaterial('stone'),new THREE.Vector3(x,y+5,-27),new THREE.Vector3(5.2,5.5,3.3));cameraMeshes.push(cliff);
   const vv=[],ii=[];for(let i=0;i<=60;i++){const t=i/60,xx=x+Math.sin(t*5)*.18,zz=-24.3+.3*t;for(const side of [-1,1])vv.push(xx+side*(.48+.13*Math.sin(t*6)),y+(1-t)*9.9,zz);if(i<60){const k=i*2;ii.push(k,k+1,k+2,k+1,k+3,k+2);}}const fg=new THREE.BufferGeometry();fg.setAttribute('position',new THREE.Float32BufferAttribute(vv,3));fg.setIndex(ii);fg.computeVertexNormals();make(fg,waterMat,new THREE.Vector3());
   makeLeaf(new THREE.Vector3(x,y+10,-25.8),1.7,.4);
  }
