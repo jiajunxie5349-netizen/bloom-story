@@ -40,7 +40,7 @@
 
 ## 資產與程式
 
-- 第一章：`forest_ground_v8.glb`、`forest_vegetation_v15.glb`、`terrain_v12.json`、`collisions_v15.json`。
+- 第一章：`forest_ground_v8.glb`、`forest_vegetation_v18.glb`、`terrain_v12.json`、`scene-layout.json`、`scene-manifest.json`。
 - 原始扇葉模板：`original_fan_leaves_v11.glb`；第二章也使用此貼圖資產。
 - 角色：`sprite_guardian_v10.glb`、`src/guardian-life.js`，包含葉衣彎曲、呼吸、轉身傾斜及懸浮圓球小手。
 - 場景與控制：`src/world.js`、`navigation.js`、`living-world.js`、`ground-cover.js`、`forest-atmosphere.js`。
@@ -102,3 +102,12 @@ GitHub Pages 使用 `.github/workflows/deploy.yml`：main 更新後安裝依賴�
 原始貼圖扇葉保留，增加傾角、彎曲葉柄與根部厚度；維持連續草甸、湖床、河道與現有劇情。參考中的人造背牆與切割展示底座沒有搬進森林。第一章新模型按材質合併並壓縮，舊版本資產保留供回復。
 
 `collisions_v15.json` 從本輪可見模型重新烘焙，記錄模型 SHA-256 防止碰撞與外觀版本錯配。測試涵蓋九個任務的可接近位置、整圈行走、全圖連通、接地根部及材質限制；這些檢查不能保證每一種裝置或任意操作都沒有問題。
+
+
+## 第十八輪：獨立場景編輯與琉璃石質植物
+
+第一章沿用第十五版的地形、湖岸、路線與植株位置。204 株主要植株改為獨立完整群組，新增薄殼厚度、杯內摺面、蓮座內瓣／琥珀芯及三片式玉質嫩芽。修復後材質分為青瓷玉色葉面、象牙／灰粉杯內、琥珀葉板及霧面藍灰石質莖；表面雲紋、細脈及粗糙度分開處理，不使用全場金屬或地面自發光。此版本使用風格化不透明琉璃表皮與有限清漆高光，並非物理透射玻璃或概念圖等級光線追蹤。
+
+正式版讀取 `forest_vegetation_v18.glb`、`scene-manifest.json` 與 `scene-layout.json`。配置包含從相同 Blender 可見網格重新烘焙的碰撞；模型 SHA-256 與配置簽章防止意外版本混用。正式渲染依材質合併，編輯器保留完整植株供選取。
+
+雙擊「開啟場景編輯器.cmd」或執行 `npm run editor`，詳見 [本機編輯器使用說明](authoring/使用說明.md)。本輪支援第一章主要植株，地形、任務點、草甸及其他章節尚未開放調整。儲存只寫入本機來源配置；發布仍走既有 GitHub Pages 流程。正式建置排除編輯入口、編輯程式與儲存服務。
