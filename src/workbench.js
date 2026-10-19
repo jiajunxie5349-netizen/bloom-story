@@ -1,4 +1,5 @@
 import {fieldLessons,measureMeaning,lessonStepReady,firstIssue} from './lesson-path.js';
+import {decisionFeedback} from './decision-feedback.js';
 import {learning} from './learning.js';
 import {freshPuzzle,checkPuzzle,specimens,puzzleNames} from './puzzles.js';
 const label={cover:'落葉覆蓋',plant:'適地植被',buffer:'緩衝植被',keep:'保留棲地',isolate:'隔離待治理',fertilizer:'大量施肥',paving:'硬面鋪設',shade:'林下草本',slope:'坡地草叢',shore:'池岸植物',observe:'補查來源與採樣',source:'降低來源投入',restore:'改善裸地與棲地',monitor:'後續比較觀測'};
@@ -53,7 +54,7 @@ export function mountWorkbench(root,kind,draft,onChange,onFinish,sound){
   if(action==='place'){
    const item=specimens.find(i=>i.id===state.selected);if(!item){message='先選取池岸物品。';return;}
    if(item.destination!==value){message=item.id==='container'?'未知物請標記隔離，雙手不直接接觸。':item.destination==='keep'?'這是棲地的一部分，請留在適當位置。':item.id==='report'?'檢測資訊要留作後續監測。':'這件物品需要移入收集盤。';sound('error');return;}
-   change(()=>state.items[item.id]=value);if(step<7)step++;message=`${item.name}：${{collect:'已收集',keep:'已保留',isolate:'已標記專業處理',monitor:'已加入監測'}[value]}`;
+   change(()=>state.items[item.id]=value);if(step<7)step++;message=`${item.name}：${{collect:'已收集，避免垃圾繼續進入水域。',keep:'已保留，讓小生物繼續有棲地。',isolate:'已標記，等待合適人員處理，避免直接接觸未知物。',monitor:'已加入監測，外觀改善後也要繼續比較資料。'}[value]}`;
   }
   if(action==='zone')change(()=>state.zones[value]=state.selected);
   if(action==='order'&&!state.order.includes(value)&&state.order.length<4)change(()=>state.order.push(value));
@@ -62,6 +63,7 @@ export function mountWorkbench(root,kind,draft,onChange,onFinish,sound){
   if(action==='hint'){message=hints[kind][Math.min(hint++,2)];sound('touch');}
   if(action==='check'){tested=true;const result=checkPuzzle(kind,state);passed=result.ok;message=(result.ok?'判斷完成。':'先看看這個原因：')+result.text;if(!result.ok)step=firstIssue(kind,state);sound(result.ok?'success':kind==='soil'?'water':'error');}
   if(action==='finish'&&checkPuzzle(kind,state).ok){onFinish();return;}
+  if(['set','toggle','zone','order','remove'].includes(action))message=decisionFeedback(kind,state,step)||message;
  }
  const click=e=>{const b=e.target.closest('button[data-action]');if(!b||!root.contains(b))return;const {action,value,key}=b.dataset;operate(action,value,key);render({action,value,key});};
  const start=e=>{const b=e.target.closest('[data-drag]');if(b)e.dataTransfer.setData('text/plain',b.dataset.drag);};
