@@ -19,6 +19,7 @@ export const wetlandHeroes=[
  ['dome',-23,23,4.1,2.7,.2],['dome',25,-23,6.0,3.5,-.3],
  ['fan',-6,9,3.8,3.8,.7],['fan',-10,-32,7.2,5.1,.2],['fan',1,-33,7.8,5.0,-.3]
 ];
+export const wetlandRimRadius=a=>34+.35*Math.sin(a*3)+.20*Math.cos(a*7);
 const colorPalettes={
  leaf:['#64735b','#87967d','#465548','#a3aa91','#676f67'],
  underside:['#474e48','#5a6154','#665c52'],
@@ -144,6 +145,15 @@ export function createWetlandHabitat(terrain){
   if(!g.attributes.color){const c=new THREE.Color(i%4?'#a0a4a1':'#8c6258'),arr=new Float32Array(g.attributes.position.count*3);for(let j=0;j<arr.length;j+=3)arr.set([c.r,c.g,c.b],j);g.setAttribute('color',new THREE.BufferAttribute(arr,3));}
   solids.push({x,z,radius:R*.6});
  }
+ // A visible, irregular mineral bank closes the finite terrain before its
+ // numerical radius limit, so the player meets a surface instead of thin air.
+ const rv=[],rc=[],ri=[],rn=224;
+ for(let i=0;i<=rn;i++)for(let j=0;j<3;j++){
+  const a=i/rn*Math.PI*2,r=wetlandRimRadius(a),x=Math.sin(a)*r,z=Math.cos(a)*r,base=terrain.raw(x,z)??-1.5,R=r+(j===0?0:j===1?.7:5.5),y=base+(j===0?-.15:j===1?1.8+.3*Math.sin(a*5):3.2+.6*Math.sin(a*3+.4));
+  rv.push(Math.sin(a)*R,y,Math.cos(a)*R);color.set(j===0?'#48484b':j===1?'#686b66':'#59645f');rc.push(color.r,color.g,color.b);
+  if(i<rn&&j<2){const q=i*3+j;ri.push(q,q+1,q+3,q+1,q+4,q+3);}
+ }
+ const rim=new THREE.BufferGeometry();rim.setAttribute('position',new THREE.Float32BufferAttribute(rv,3));rim.setAttribute('color',new THREE.Float32BufferAttribute(rc,3));rim.setIndex(ri);rim.computeVertexNormals();mesh(rim,mats.underside,group).name='Scalloped_mineral_basin_bank';
  // Curved scenic enclosure beyond the playable radius. Its identity is an
  // ambiguous mineral shell; no doorway, greenhouse, paving or route partition.
  const bp=[],bc=[],bi=[],segments=144;
