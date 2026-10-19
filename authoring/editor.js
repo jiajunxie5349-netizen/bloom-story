@@ -1,0 +1,42 @@
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {TransformControls} from 'three/addons/controls/TransformControls.js';
+import {createWorld} from '../src/world.js';
+import {freshProgress} from '../src/progress.js';
+import {validateLayout} from '../src/scene-layout.js';
+import './editor.css';
+if(!import.meta.env.DEV)throw Error('編輯器只在本機開發環境啟用');
+document.body.innerHTML=`<canvas id="scene"></canvas><aside><h1>森林場景編輯器</h1><p>本機專用 · 不使用玩家存檔</p><label>搜尋植株<input id="search" placeholder="輸入名稱或編號"></label><label>選擇完整植株<select id="objects" size="7"></select></label><fieldset><legend>位置與大小</legend><label>左右 X<input id="x" type="number" step="0.1"></label><label>前後 Z<input id="z" type="number" step="0.1"></label><label>旋轉（度）<input id="yaw" type="number" step="5"></label><label>大小<input id="scale" type="number" step="0.05" min="0.6" max="1.6"></label><button id="apply">套用調整</button></fieldset><div class="buttons"><button id="focus">查看選中植株</button><button id="undo">復原上一步</button><button id="redo">重做</button><button id="reset">重設選中植株</button></div><label><input id="restored" type="checkbox">預覽森林修復後</label><button id="save" class="primary">儲存正式場景配置</button><button id="export">下載配置備份</button><label>載入配置備份<input id="import" type="file" accept="application/json,.json"></label><output id="status" role="status">載入中…</output><p class="help">點擊植株或從清單選取。拖曳紅／藍軸移動，放開時自動貼地。背景拖曳旋轉視角，滾輪縮放。儲存時會重建碰撞並檢查任務通路。正式網站需另行發布；此按鈕不會直接修改線上遊戲。</p><a href="/" target="_blank">開啟正式遊戲預覽 ↗</a></aside>`;
+const $=s=>document.querySelector(s),status=message=>$('#status').textContent=message;
+window.addEventListener('error',e=>status('畫面發生錯誤：'+e.message));window.addEventListener('unhandledrejection',e=>status('無法載入編輯器：'+(e.reason?.message??e.reason)));
+const world=await createWorld($('#scene'),{quality:'balanced',speed:3.3,authoring:true},status),{scene,camera,objects,layout,manifest}=world.authoring;
+window.addEventListener('resize',world.resize);
+const pristine=structuredClone(layout),history=[],future=[];let dirty=false,saving=false,selected=null,snapshot=null,restored=false;
+const names={fan:'摺面扇葉',sculpture:'礦質杯／傘／尖錐',herb:'地生植株',canopy:'林冠植株'};
+const orbit=new OrbitControls(camera,$('#scene'));orbit.target.copy(world.player.position).add(new THREE.Vector3(0,1,0));orbit.minDistance=1;orbit.maxDistance=70;orbit.maxPolarAngle=Math.PI*.48;orbit.update();
+const gizmo=new TransformControls(camera,$('#scene'));gizmo.setMode('translate');gizmo.showY=false;scene.add(gizmo.getHelper());
+const bounds=new THREE.BoxHelper(undefined,'#f3d989');scene.add(bounds);bounds.visible=false;
+function capture(){return structuredClone(layout.objects);}
+function remember(before){if(JSON.stringify(before)===JSON.stringify(layout.objects))return;history.push(before);if(history.length>50)history.shift();future.length=0;dirty=true;status('有尚未儲存的調整');}
+function hydrate(){for(const [id,t] of Object.entries(layout.objects)){const o=objects.get(id);o.position.fromArray(t.position);o.rotation.y=t.yaw;o.scale.setScalar(t.scale);}scene.updateMatrixWorld(true);refresh();}
+function refresh(){if(!selected)return;const t=layout.objects[selected];$('#x').value=t.position[0].toFixed(2);$('#z').value=t.position[2].toFixed(2);$('#yaw').value=(t.yaw*180/Math.PI).toFixed(1);$('#scale').value=t.scale.toFixed(2);bounds.setFromObject(objects.get(selected));}
+function select(id){if(!objects.has(id))return;selected=id;$('#objects').value=id;gizmo.attach(objects.get(id));bounds.visible=true;refresh();}
+function options(){const query=$('#search').value.toLowerCase();$('#objects').replaceChildren();for(const id of objects.keys()){const label=(names[manifest.objects[id].kind]??'植株')+' · '+id;if(!label.toLowerCase().includes(query))continue;const option=document.createElement('option');option.value=id;option.textContent=label;$('#objects').append(option);}if(selected)$('#objects').value=selected;}
+function syncSelected(){const o=objects.get(selected),t=layout.objects[selected],h=world.terrain.height(o.position.x,o.position.z);if(h==null||h< -2.3||Math.hypot(o.position.x,o.position.z)>34){o.position.fromArray(t.position);status('此處不是可用陸地，已退回原位置');return;}o.position.y=h;t.position=o.position.toArray();t.yaw=o.rotation.y;t.scale=o.scale.x;refresh();}
+gizmo.addEventListener('dragging-changed',event=>{orbit.enabled=!event.value;if(event.value)snapshot=capture();else{syncSelected();remember(snapshot);snapshot=null;}});
+gizmo.addEventListener('objectChange',()=>{if(selected)bounds.setFromObject(objects.get(selected));});
+let down=null;$('#scene').addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY];});
+$('#scene').addEventListener('pointerup',e=>{if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>4||gizmo.axis)return;const rect=$('#scene').getBoundingClientRect(),ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1),camera);const hits=ray.intersectObjects([...objects.values()],true);if(hits.length){let o=hits[0].object;while(o&&!o.userData.sceneId)o=o.parent;if(o)select(o.userData.sceneId);}});
+$('#objects').onchange=e=>select(e.target.value);$('#search').oninput=options;
+$('#apply').onclick=()=>{if(!selected)return;const before=capture(),x=Number($('#x').value),z=Number($('#z').value),h=world.terrain.height(x,z),t=layout.objects[selected];t.position=[x,h??999,z];t.yaw=Number($('#yaw').value)*Math.PI/180;t.scale=Number($('#scale').value);try{validateLayout(layout,manifest,world.terrain);hydrate();remember(before);}catch(e){layout.objects=before;hydrate();status(e.message);}};
+$('#focus').onclick=()=>{if(!selected)return;const box=new THREE.Box3().setFromObject(objects.get(selected)),center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3()).length();orbit.target.copy(center);camera.position.copy(center).add(new THREE.Vector3(1,.6,1).normalize().multiplyScalar(Math.max(3,size*1.3)));orbit.update();};
+$('#undo').onclick=()=>{if(!history.length)return;future.push(capture());layout.objects=history.pop();dirty=true;hydrate();status('已復原；尚未儲存');};
+$('#redo').onclick=()=>{if(!future.length)return;history.push(capture());layout.objects=future.pop();dirty=true;hydrate();status('已重做；尚未儲存');};
+$('#reset').onclick=()=>{if(!selected)return;const before=capture();layout.objects[selected]=structuredClone(pristine.objects[selected]);hydrate();remember(before);};
+$('#restored').onchange=e=>{restored=e.target.checked;};
+$('#export').onclick=()=>{const a=document.createElement('a'),url=URL.createObjectURL(new Blob([JSON.stringify({version:layout.version,assetSHA256:layout.assetSHA256,objects:layout.objects},null,2)],{type:'application/json'}));a.href=url;a.download='forest-scene-layout.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+$('#import').onchange=async e=>{try{const file=e.target.files[0];if(!file)return;if(file.size>200000)throw Error('配置檔太大');const data=JSON.parse(await file.text());validateLayout(data,manifest,world.terrain);const before=capture();layout.objects=data.objects;hydrate();remember(before);}catch(e){status(e.message);}};
+$('#save').onclick=async()=>{if(saving)return;saving=true;$('#save').disabled=true;gizmo.detach();orbit.enabled=false;status('正在重建碰撞並檢查任務路線，請稍候…');try{validateLayout(layout,manifest,world.terrain);const body=JSON.stringify({version:layout.version,assetSHA256:layout.assetSHA256,objects:layout.objects}),response=await fetch('/__scene/save',{method:'POST',headers:{'Content-Type':'application/json','X-Bloom-Editor':'1'},body});const result=await response.json();if(!response.ok)throw Error(result.error);dirty=false;status(result.message);}catch(e){status('未儲存：'+e.message);}finally{saving=false;$('#save').disabled=false;orbit.enabled=true;if(selected)gizmo.attach(objects.get(selected));}};
+window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
+const progress=freshProgress();let last=performance.now(),time=0;
+function frame(now){if(document.hidden||now-last<33){requestAnimationFrame(frame);return;}const dt=Math.min(.05,(now-last)/1000);last=now;time+=dt;const p=restored?{...progress,barriers:[0,1],soils:[0,1,2],ritual:true}:progress;orbit.update();world.update(dt,time,new Set(),false,p,'survey',false,true);bounds.visible=!!selected;requestAnimationFrame(frame);}options();select(objects.keys().next().value);status('已載入 '+objects.size+' 株可獨立調整的完整植株');requestAnimationFrame(frame);
