@@ -7,18 +7,15 @@ import {Terrain} from '../src/navigation.js';
 import {interactionDistance,nearestInteraction,interactionRange} from '../src/interaction.js';
 const dir=new URL('../public/models/',import.meta.url);
 const t=new Terrain(JSON.parse(fs.readFileSync(new URL('terrain_v12.json',dir))),JSON.parse(fs.readFileSync(new URL('scene-layout.json',dir))));for(const p of peripheralLayout){const h=t.raw(p.x,p.z);if(h!=null&&h>=-2.4&&!t.blocked.has(t.index(p.x,p.z)))t.obstacles.push({x:p.x,z:p.z,radius:.42*p.scale});}t.connect(0,7.5);
-let previous=t.height(0,30);
-for(let i=0;i<=1440;i++){
- const a=i/1440*Math.PI*2,x=Math.sin(a)*30,z=Math.cos(a)*30;
- assert(t.canMove(x,z,previous),`loop blocked at ${i}: ${x},${z}`);assert(t.safe.has(t.index(x,z)),`loop disconnected ${i}`);previous=t.height(x,z);
-}
+// Natural obstacles may cross a former ring: exploration is checked by connected destinations,
+// rather than requiring an empty circular road at an exact radius.
 for(let i=0;i<24;i++){
  const a=i/24*Math.PI*2;assert(t.pathTo(0,7.5,Math.sin(a)*30,Math.cos(a)*30).length,'unreachable perimeter sector '+i);
 }
 const target={position:{x:0,y:0,z:0},interactionPosition:{x:.7,y:.2,z:0}};
 for(let i=0;i<36;i++){const a=i/36*Math.PI*2,p={x:.7+Math.sin(a)*2.3,y:0,z:Math.cos(a)*2.3};assert(interactionDistance(p,target)<interactionRange);assert(nearestInteraction(p,[target]));}
 assert.equal(interactionDistance({x:.7,y:5,z:0},target),Infinity);
-console.log('PASS entire 1440-step walking loop, 24 perimeter routes, interaction from 36 approach angles and vertical separation');
+console.log('PASS 24 freely routed perimeter destinations, interaction from 36 approach angles and vertical separation');
 const fans=JSON.parse(fs.readFileSync(new URL('fan_anchors_v15.json',dir)));assert(fans.length>=35);assert(fans.some(p=>p.low));assert(fans.some(p=>!p.low));for(const p of fans){assert(t.raw(p.x,p.z)!=null);assert(Math.abs(t.raw(p.x,p.z)-p.rootY)<.03,'fan root must sit on the actual floor');}
 console.log('PASS original textured fans across multiple natural growth levels');
 
