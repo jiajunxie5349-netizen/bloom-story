@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import * as THREE from 'three';
 import {Terrain} from '../src/navigation.js';
 import {mapLayout} from '../src/map-config.js';
-import {createWetlandHabitat} from '../src/wetland-habitat.js';
+import {createWetlandHabitat,wetlandRimRadius} from '../src/wetland-habitat.js';
 import {buildOcclusionIndex} from '../src/camera-occlusion.js';
 const read=n=>JSON.parse(fs.readFileSync(new URL('../public/models/'+n,import.meta.url)));
 const collision=read('collisions_v16.json'),t=new Terrain(read('terrain_v12.json'),collision);
@@ -37,4 +37,5 @@ for(const s of mapLayout.sites){
 }
 // On loading a save inside a new root, recovery must select actual safe land.
 const root=habitat.solids.find(s=>s.radius>.7);assert(root);const [x,z]=t.nearest(root.x,root.z);assert(t.canMove(x,z,t.height(x,z)));assert(t.safe.has(t.index(x,z)));
+for(let i=0;i<48;i++){const a=i/48*Math.PI*2,r=wetlandRimRadius(a)+.3;assert(!t.canMove(Math.sin(a)*r,Math.cos(a)*r,t.raw(Math.sin(a)*r,Math.cos(a)*r)),'visible basin bank must block boundary traversal');}
 console.log(`PASS wetland source/bake pairing, ${habitat.plants.length} rooted plants, two hero trumpets, finite nonmetallic geometry, exterior backdrop and nine task approaches`);
