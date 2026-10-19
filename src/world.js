@@ -77,7 +77,7 @@ export async function createWorld(canvas, settings, onStatus) {
         m.roughness=.96;m.metalness=0;m.envMapIntensity=.045;
         // Keep the reference plants' baked pigment legible in the shaded forest.
         // Strong brown multiplication erased pale rims and slate flutes.
-        const sculpted=/slate fibres|olive plates|umber plates|trumpet interior|cup exterior|fluted growth/.test(m.name);
+        const sculpted=/slate fibres|olive plates|umber plates|trumpet interior|cup exterior|fluted growth|violet seed tissue/.test(m.name);
         seasonalMaterials.push({material:m,original:m.color.clone(),sculpted});
         if(/Oxidized|Rust red|Weathered/.test(m.name))worldSurface(m,'float patina=earthNoise(vHabitatPosition.xz*8.+vHabitatPosition.yy*3.);float mottling=earthNoise(vHabitatPosition.xz*25.);diffuseColor.rgb*=.58+patina*.43+mottling*.16;');
       }
