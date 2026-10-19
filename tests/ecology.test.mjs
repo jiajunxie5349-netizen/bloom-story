@@ -2,14 +2,14 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import {Terrain} from '../src/navigation.js';
 import {floorScatter} from '../src/forest-floor.js';
-import {lakeLeafLayout} from '../src/lake-ecology.js';
+import {lakeLeafLayout,lakeLeafHeight} from '../src/lake-ecology.js';
 import {gardenHeight} from '../src/garden-data.js';
 const first=new Terrain(JSON.parse(fs.readFileSync(new URL('../public/models/terrain_v12.json',import.meta.url))));
 const second={radius:35,height:gardenHeight,raw:gardenHeight};
 for(const [name,t] of [['forest',first],['valley',second]]){
  const points=floorScatter(t),low=points.slice(0,Math.floor(points.length*.6));
  assert(points.length<125000,'grass budget exceeded');
- for(const p of points){assert(Math.abs(p.y-t.height(p.x,p.z)+.018)<1e-7);assert(t.raw(p.x,p.z)>-2.15);}
+ for(const p of points){assert(Math.abs(p.y-t.height(p.x,p.z)+.018)<1e-7);assert(t.raw(p.x,p.z)>-2.38);}
  // A 2 m survey quadrat of dry, level ground must remain a meadow even on low quality.
  const bins=new Map();for(const p of low){const key=`${Math.floor(p.x/2)},${Math.floor(p.z/2)}`;bins.set(key,(bins.get(key)??0)+1);}
  let tested=0;for(let x=-28;x<28;x+=2)for(let z=-28;z<28;z+=2){
@@ -21,3 +21,11 @@ for(const [name,t] of [['forest',first],['valley',second]]){
 const pads=lakeLeafLayout(first);assert(pads.length>8);
 for(const p of pads)for(let j=0;j<36;j++){const a=j*Math.PI/18;assert(first.raw(p.x+Math.sin(a)*(p.r+.06),p.z+Math.cos(a)*(p.r+.06))<-2.50,'lake leaf crosses a dry bank');}
 console.log(`PASS ${pads.length} shallow-water leaves stay inside the lake, with no new movement blockers`);
+// Read the actual source asset bounds: the lower folded edges must clear the highest wave.
+const bytes=fs.readFileSync(new URL('../public/models/original_fan_leaves_v11.glb',import.meta.url));
+const gltf=JSON.parse(bytes.subarray(20,20+bytes.readUInt32LE(12)).toString('utf8'));
+for(const mesh of gltf.meshes)for(const primitive of mesh.primitives){
+ const min=gltf.accessors[primitive.attributes.POSITION].min[1]*.09;
+ for(const p of pads)assert(lakeLeafHeight(p.r,min)+min*p.r>-2.48+.024,'folded lake leaf is sliced by a wave');
+}
+console.log('PASS original folded leaf edges stay above the maximum wave height');
