@@ -41,7 +41,7 @@ export async function createWorld(canvas, settings, onStatus) {
   let forest,guardian;
   try {
     onStatus('正在載入森林、守護者與地形…');
-    const [f,g,res,collisionRes,v,fanSource]=await Promise.all([loader.loadAsync(base+'models/forest_ground_v8.glb'),loader.loadAsync(base+'models/sprite_guardian_v10.glb'),fetch(base+'models/terrain_v12.json'),fetch(base+'models/collisions_v14.json'),loader.loadAsync(base+'models/forest_vegetation_v12.glb'),loader.loadAsync(base+'models/original_fan_leaves_v11.glb')]);
+    const [f,g,res,collisionRes,v,fanSource]=await Promise.all([loader.loadAsync(base+'models/forest_ground_v8.glb'),loader.loadAsync(base+'models/sprite_guardian_v10.glb'),fetch(base+'models/terrain_v12.json'),fetch(base+'models/collisions_v15.json'),loader.loadAsync(base+'models/forest_vegetation_v15.glb'),loader.loadAsync(base+'models/original_fan_leaves_v11.glb')]);
     if(!res.ok||!collisionRes.ok)throw new Error('地形或碰撞資料載入失敗');
     const terrain=new Terrain(await res.json(),await collisionRes.json());terrain.connect(...mapLayout.spawn);
     if(terrain.reachable.size<100)throw new Error('可行走地形不足');
@@ -74,7 +74,11 @@ export async function createWorld(canvas, settings, onStatus) {
       else if(!o.geometry.attributes.uv){o.material=groundMaterial;o.visible=false;}
       else if(/Woodland.cap.ochre/.test(o.material.name)){o.material=woodlandMaterial('cap');}
       else for(const m of (Array.isArray(o.material)?o.material:[o.material])) {
-        m.roughness=.94;m.metalness=.03;m.envMapIntensity=.045;seasonalMaterials.push({material:m,original:m.color.clone()});
+        m.roughness=.96;m.metalness=0;m.envMapIntensity=.045;
+        // Keep the reference plants' baked pigment legible in the shaded forest.
+        // Strong brown multiplication erased pale rims and slate flutes.
+        const sculpted=/slate fibres|olive plates|umber plates|trumpet interior|cup exterior|fluted growth/.test(m.name);
+        seasonalMaterials.push({material:m,original:m.color.clone(),sculpted});
         if(/Oxidized|Rust red|Weathered/.test(m.name))worldSurface(m,'float patina=earthNoise(vHabitatPosition.xz*8.+vHabitatPosition.yy*3.);float mottling=earthNoise(vHabitatPosition.xz*25.);diffuseColor.rgb*=.58+patina*.43+mottling*.16;');
       }
     });scene.add(forest);const continuousGround=sculptedGround(terrain,groundMaterial);scene.add(continuousGround);
@@ -178,7 +182,7 @@ export async function createWorld(canvas, settings, onStatus) {
       restoration=THREE.MathUtils.damp(restoration,progress.ritual?1:progress.barriers.length*.06+progress.soils.length*.18,1,dt);
       habitat.value=restoration;waterTime.value=reduced?0:time;
       waterMaterial.color.lerpColors(pollutedWater,clearWater,restoration);
-      waterMaterial.emissiveIntensity=0;waterHealth.value=THREE.MathUtils.damp(waterHealth.value,(progress.barriers.length===2?.2:0)+(progress.soils.includes(0)?.35:0)+(progress.soils.includes(1)?.25:0)+(progress.ritual?.2:0),.65,dt);ambient.intensity=.85+restoration*.85;moon.intensity=1.3-restoration*.3;warm.intensity=.25+restoration*2.8;seasonalMaterials.forEach(({material,original})=>material.color.copy(original).multiply(new THREE.Color().lerpColors(new THREE.Color('#95826b'),new THREE.Color(material.name.includes('leaf')?'#8fbd79':'#b9cca1'),restoration)));particles.material.opacity=.12+restoration*.53;scene.fog.color.lerpColors(darkFog,livingFog,restoration*.65);scene.background.copy(scene.fog.color);
+      waterMaterial.emissiveIntensity=0;waterHealth.value=THREE.MathUtils.damp(waterHealth.value,(progress.barriers.length===2?.2:0)+(progress.soils.includes(0)?.35:0)+(progress.soils.includes(1)?.25:0)+(progress.ritual?.2:0),.65,dt);ambient.intensity=.85+restoration*.85;moon.intensity=1.3-restoration*.3;warm.intensity=.25+restoration*2.8;seasonalMaterials.forEach(({material,original,sculpted})=>material.color.copy(original).multiply(new THREE.Color().lerpColors(new THREE.Color(sculpted?'#d5d3cb':'#95826b'),new THREE.Color(sculpted?'#eeefde':material.name.includes('leaf')?'#8fbd79':'#b9cca1'),restoration)));particles.material.opacity=.12+restoration*.53;scene.fog.color.lerpColors(darkFog,livingFog,restoration*.65);scene.background.copy(scene.fog.color);
       repairs.forEach((r,i)=>{const t=targets.find(t=>t.type==='soil'&&t.index===i);r.value.set(t.position.x,t.position.z,0,THREE.MathUtils.damp(r.value.w,progress.soils.includes(i)?1:0,1.8,dt));});
       landmarks.update(restoration);lakeEcology.update(waterHealth.value);atmosphere.update(restoration,quality);lotus.update(time,restoration,reduced);canopy.update(time,restoration,progress,reduced,dt);
       growth.update(repairs.map(r=>r.value.w),progress.ritual,quality,time,reduced,player.position,jumpHeight);living.update(time,restoration,progress,reduced);
