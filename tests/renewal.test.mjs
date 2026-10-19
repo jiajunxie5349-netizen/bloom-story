@@ -16,7 +16,7 @@ assert.match(decisionFeedback('soil',{zones:{E:'cover'}},4),/不能/);
 assert.match(decisionFeedback('water',{source:true,collected:true,clean:true,gate:'downstream'},1),/其他生命/);
 // Check the new visible root footprints alongside the baked vegetation collisions.
 const read=name=>JSON.parse(fs.readFileSync(new URL('../public/models/'+name,import.meta.url)));
-const t=new Terrain(read('terrain_v12.json'),read('collisions_v14.json'));t.connect(...mapLayout.spawn);
+const t=new Terrain(read('terrain_v12.json'),read('collisions_v15.json'));t.connect(...mapLayout.spawn);
 const source=new THREE.Group();source.add(new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshStandardMaterial()));
 const places=mapLayout.sites.filter(s=>s.type==='survey');
 const roots=addLivingLandmarks(new THREE.Scene(),t,source,places);t.obstacles.push(...roots.solids);t.connect(...mapLayout.spawn);
