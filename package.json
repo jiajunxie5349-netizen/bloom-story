@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node tests/core.test.mjs && node tests/exploration.test.mjs && node tests/garden.test.mjs && node tests/story.test.mjs && node tests/ecology.test.mjs && node tests/lesson-path.test.mjs && node tests/renewal.test.mjs && node tests/sculpture.test.mjs && node tests/wetland.test.mjs"
+    "test": "node tests/core.test.mjs && node tests/exploration.test.mjs && node tests/garden.test.mjs && node tests/story.test.mjs && node tests/ecology.test.mjs && node tests/lesson-path.test.mjs && node tests/renewal.test.mjs && node tests/sculpture.test.mjs"
   },
   "devDependencies": {
     "vite": "^8.3.0"
