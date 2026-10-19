@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {organicCap,woodlandMaterial} from './woodland-material.js';
 export const riverPoints=[[19,-26,-2.15],[18,-17,-2.25],[16,-8,-2.35],[12,0,-2.45],[8,6,-2.55]];
 export const peripheralLayout=Array.from({length:110},(_,i)=>{const a=i*2.39996,r=i%2?32.2+(i%7)*.16:27.8+(i%4)*.1;return {a,x:Math.cos(a)*r,z:Math.sin(a)*r,scale:.5+(i%9)*.11};});
-export function addLivingWorld(scene,terrain,targets){
+export function addLivingWorld(scene,terrain,targets,options={}){
  const root=new THREE.Group();scene.add(root);
  const bark=new THREE.MeshStandardMaterial({color:'#493c29',roughness:1});
  const leafMat=new THREE.MeshStandardMaterial({color:'#655e34',roughness:.91,side:THREE.DoubleSide});
@@ -16,7 +16,7 @@ export function addLivingWorld(scene,terrain,targets){
  const cap=organicCap();cap.scale(.42,.42,.42);const capMat=woodlandMaterial('cap');
  const stems=new THREE.InstancedMesh(stem,bark,110),caps=new THREE.InstancedMesh(cap,capMat,110),leaves=new THREE.InstancedMesh(leaf,leafMat,900);
  const dummy=new THREE.Object3D();let k=0;
- for(let i=0;i<110;i++){
+ for(let i=0;i<(options.wetland?0:110);i++){
   const {a,x,z,scale}=peripheralLayout[i],y=terrain.raw(x,z);
   if(y==null||y<-2.4||terrain.blocked.has(terrain.index(x,z)))continue;
   dummy.position.set(x,y+.4*scale,z);dummy.rotation.set(0,a,0);dummy.scale.setScalar(scale);dummy.updateMatrix();stems.setMatrixAt(k,dummy.matrix);
