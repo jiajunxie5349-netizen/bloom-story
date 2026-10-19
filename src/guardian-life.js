@@ -10,8 +10,8 @@ export function breatheGuardian(model,hands=[]){
  });
  return {update(time,dt,velocity,reduced,jump=0){
   const turn=Math.atan2(Math.sin(model.rotation.y-lastYaw),Math.cos(model.rotation.y-lastYaw));lastYaw=model.rotation.y;bank=THREE.MathUtils.damp(bank,THREE.MathUtils.clamp(turn/Math.max(.001,dt)*.035,-.09,.09),4,dt);const target=Math.min(1,Math.hypot(velocity.x,velocity.z)/5);speed=THREE.MathUtils.damp(speed,target,4,dt);lean=THREE.MathUtils.damp(lean,speed*.10,3.8,dt);handLag=THREE.MathUtils.damp(handLag,speed,2.8,dt);clock.value=reduced?0:time;stride.value=reduced?0:speed;
-  const breath=reduced?0:Math.sin(time*1.45)*.048+Math.sin(time*.73)*.018;
-  model.position.y=1.1+jump+breath+(reduced?0:Math.sin(time*4.4)*speed*.018);
+  const breath=reduced?0:Math.sin(time*1.45)*.020+Math.sin(time*.73)*.009;
+  model.position.y=.64+jump+breath+(reduced?0:Math.sin(time*4.4)*speed*.018);
   model.rotation.x=reduced?0:lean+Math.sin(time*.9)*.012;model.rotation.z=reduced?0:-bank+Math.sin(time*1.1)*.022*(1-speed*.5);model.position.x=reduced?0:Math.sin(time*.83)*.018;
   model.scale.y=.65*(1+(reduced?0:Math.sin(time*1.45)*.009));
   hands.forEach((h,i)=>{const side=i?1:-1;h.position.set(side*(.29+(reduced?0:Math.sin(time*1.05+i*1.6)*.018)),.12+(reduced?0:Math.sin(time*1.45+i*.8)*.043)-handLag*.035,.36+handLag*.055+(reduced?0:Math.sin(time*1.1+i)*.024));});

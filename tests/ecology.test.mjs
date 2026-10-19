@@ -8,7 +8,7 @@ const first=new Terrain(JSON.parse(fs.readFileSync(new URL('../public/models/ter
 const second={radius:35,height:gardenHeight,raw:gardenHeight};
 for(const [name,t] of [['forest',first],['valley',second]]){
  const points=floorScatter(t),low=points.slice(0,Math.floor(points.length*.6));
- assert(points.length<90000,'grass budget exceeded');
+ assert(points.length<125000,'grass budget exceeded');
  for(const p of points){assert(Math.abs(p.y-t.height(p.x,p.z)+.018)<1e-7);assert(t.raw(p.x,p.z)>-2.15);}
  // A 2 m survey quadrat of dry, level ground must remain a meadow even on low quality.
  const bins=new Map();for(const p of low){const key=`${Math.floor(p.x/2)},${Math.floor(p.z/2)}`;bins.set(key,(bins.get(key)??0)+1);}

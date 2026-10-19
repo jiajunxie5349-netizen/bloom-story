@@ -12,27 +12,12 @@ export function lakeLeafLayout(terrain,seed=421){
  return out;
 }
 
-export function addLakeEcology(scene,terrain){
- const group=new THREE.Group();group.name='Quiet_lake_shallow_leaf_colonies';scene.add(group);
- const positions=[],uvs=[],indices=[],radial=5,sectors=36;
- // Cupped radial veins, scalloped edges and an open notch echo the original giant leaves.
- for(let j=0;j<=radial;j++)for(let i=0;i<=sectors;i++){
-  const t=j/radial,a=.12+i/sectors*(Math.PI*2-.24),r=t*(1+.045*Math.sin(a*7)+.025*Math.sin(a*13));
-  positions.push(Math.sin(a)*r,.025*t*t+.016*Math.cos(a*12)*t*t,Math.cos(a)*r);uvs.push(i/sectors,t);
-  if(j<radial&&i<sectors){const k=j*(sectors+1)+i;indices.push(k,k+sectors+1,k+1,k+1,k+sectors+1,k+sectors+2);}
- }
- const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));geo.setIndex(indices);geo.computeVertexNormals();
- const material=new THREE.MeshStandardMaterial({color:'#77745a',roughness:.94,metalness:0,envMapIntensity:.035,side:THREE.DoubleSide});
- material.onBeforeCompile=s=>{s.fragmentShader=s.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
-  float vein=pow(.5+.5*cos(vUv.x*75.398),18.)*vUv.y;
-  diffuseColor.rgb*=.76+vein*.19+.12*sin(vUv.y*31.+sin(vUv.x*33.));`);};
- material.defines={USE_UV:''};
- const pads=lakeLeafLayout(terrain),leaves=new THREE.InstancedMesh(geo,material,pads.length),m=new THREE.Object3D();
- pads.forEach((p,i)=>{m.position.set(p.x,-2.445,p.z);m.rotation.set(0,p.angle,0);m.scale.set(p.r,1,p.r);m.updateMatrix();leaves.setMatrixAt(i,m.matrix);});leaves.receiveShadow=true;leaves.computeBoundingSphere();group.add(leaves);
- const stemMat=new THREE.MeshStandardMaterial({color:'#4e5139',roughness:1});
- for(const p of pads){const stem=new THREE.Mesh(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(new THREE.Vector3(p.x-.12,p.bed-.02,p.z),new THREE.Vector3(p.x+.08,(p.bed-2.45)/2,p.z+.1),new THREE.Vector3(p.x,-2.445,p.z)),5,.014,5,false),stemMat);group.add(stem);}
- // Reeds grow from the bed in sparse colonies, leaving the broad water surface readable.
- const reeds=new THREE.InstancedMesh(new THREE.CylinderGeometry(.009,.016,1,5),stemMat,pads.length*3);
- pads.forEach((p,i)=>{for(let j=0;j<3;j++){const a=p.angle+j*2.4,x=p.x+Math.sin(a)*p.r*.6,z=p.z+Math.cos(a)*p.r*.6,bed=terrain.raw(x,z),h=.65+.22*Math.sin(i*17+j);m.position.set(x,bed+h*.5,z);m.rotation.set(.09*Math.sin(a),a,.13*Math.cos(a));m.scale.set(1,h,1);m.updateMatrix();reeds.setMatrixAt(i*3+j,m.matrix);}});reeds.computeBoundingSphere();group.add(reeds);
- return {update(health){material.color.lerpColors(new THREE.Color('#77745a'),new THREE.Color('#6c8c54'),health);}};
+export function addLakeEcology(scene,terrain,fanSource){
+ const group=new THREE.Group();group.name='Textured_folded_shallow_leaves';scene.add(group);
+ const pads=lakeLeafLayout(terrain),m=new THREE.Object3D(),materials=[],templates=[];
+ fanSource.traverse(o=>{if(o.isMesh)templates.push(o);});
+ const types=templates.map(t=>{const geo=t.geometry.clone();geo.scale(1,.09,1);geo.computeVertexNormals();const mat=t.material.clone();mat.side=THREE.DoubleSide;mat.roughness=.96;mat.metalness=0;mat.envMapIntensity=.015;materials.push(mat);const mesh=new THREE.InstancedMesh(geo,mat,Math.ceil(pads.length/templates.length));mesh.receiveShadow=true;group.add(mesh);return mesh;});
+ const counts=types.map(()=>0);
+ pads.forEach((p,i)=>{const k=i%types.length;m.position.set(p.x,-2.457,p.z);m.rotation.set(0,p.angle,0);m.scale.setScalar(p.r);m.updateMatrix();types[k].setMatrixAt(counts[k]++,m.matrix);});types.forEach((t,i)=>{t.count=counts[i];t.computeBoundingSphere();});
+ return {update(health){materials.forEach(mat=>mat.color.setRGB(.48+health*.12,.48+health*.18,.40+health*.05));}};
 }

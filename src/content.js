@@ -4,9 +4,9 @@ export const chapters = [
   { n:'00', title:'Bloom Mirror', theme:'序章 · 你的存在，讓世界回應', icon:'◌', biome:'mirror', ready:false },
   { n:'01', title:'種子森林', theme:'土壤生態 · 聽見大地的呼吸', icon:'❧', biome:'forest', ready:true },
   { n:'02', title:'光之花園', theme:'空氣與日光 · 找回穿透塵霾的光', icon:'☼', biome:'light', ready:true },
-  { n:'03', title:'蝴蝶谷', theme:'物種共生 · 守護每一種生命', icon:'⋈', biome:'valley', ready:false },
-  { n:'04', title:'天空花園', theme:'水資源 · 讓水重新流動', icon:'≈', biome:'sky', ready:false },
-  { n:'05', title:'生命之樹', theme:'全球生態 · 一起讓世界盛開', icon:'♧', biome:'tree', ready:false },
+  { n:'03', title:'蝴蝶谷', theme:'物種共生 · 守護每一種生命', icon:'⋈', biome:'valley', ready:false, previewReady:true },
+  { n:'04', title:'天空花園', theme:'水資源 · 讓水重新流動', icon:'≈', biome:'sky', ready:false, previewReady:true },
+  { n:'05', title:'生命之樹', theme:'全球生態 · 一起讓世界盛開', icon:'♧', biome:'tree', ready:false, previewReady:true },
 ];
 export const stages = {
  survey:{title:'循著水流尋找證據',text:'觀察三處池岸與支流樣本，按 E 收集，再在近景工作台比對證據。',short:'證據比對',action:'按 E · 觀察與比對',duration:0},

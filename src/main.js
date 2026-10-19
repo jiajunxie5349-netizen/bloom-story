@@ -37,17 +37,21 @@ function updateMenu(){const n=progressPercent(progress);$('#journey').innerHTML=
 function renderChapters(){
  const second=loadGarden(storage);
  $('#chapter-grid').innerHTML=chapters.map((c,i)=>{
-  const available=i===1||(i===2&&canUnlock(progress));
-  const status=i===1?`修復 ${progressPercent(progress)}%`:i===2?(available?`修復 ${gardenPercent(second)}% · 初版體驗`:'第一章 80% 並喚醒種子後解鎖'):'開發中';
+  const available=i===1||(i===2&&canUnlock(progress))||Boolean(c.previewReady);
+  const status=i===1?`修復 ${progressPercent(progress)}%`:i===2?(available?`修復 ${gardenPercent(second)}% · 初版體驗`:'第一章 80% 並喚醒種子後解鎖'):c.previewReady?'可探索 3D 場景 · 互動初版':'開發中';
   return `<div class="chapter-entry"><button class="chapter-card ${c.biome} ${!available?'unavailable':''}" data-chapter="${i}" ${!available&&i!==2?'aria-disabled="true"':''}><div class="card-art"><span class="card-number">${c.n}</span><span class="card-symbol">${c.icon}</span><span class="card-status">${status}</span><div class="card-hill"></div></div><div class="card-caption"><h3>${c.title}<span>${available?'↗':'○'}</span></h3><p>${c.theme}</p></div></button>${i===2?'<button id="garden-preview" class="text-button wide">先看看光之花園 · 不保存進度 ↗</button>':''}</div>`;
  }).join('');
- document.querySelectorAll('[data-chapter]').forEach(el=>el.onclick=()=>{const i=Number(el.dataset.chapter);if(i===1)startJourney();else if(i===2)startGarden(!canUnlock(progress));else toast(i===2?'先在種子森林達到 80% 並喚醒種子；也可先預覽林谷場景。':'這段旅程仍在製作中。');});
+ document.querySelectorAll('[data-chapter]').forEach(el=>el.onclick=()=>{const i=Number(el.dataset.chapter);if(i===1)startJourney();else if(i===2)startGarden(!canUnlock(progress));else if(chapters[i].previewReady)startBiome(i);else toast(i===2?'先在種子森林達到 80% 並喚醒種子；也可先預覽林谷場景。':'這段旅程仍在製作中。');});
  $('#garden-preview').onclick=()=>startGarden(true);$('#garden-home').textContent=canUnlock(progress)?'進入第二章 · 光之花園 ↗':'第二章 · 走進 3D 林谷預覽 ↗';
 }
 async function startGarden(preview=false,test=false){
  if(busy||(!preview&&!test&&!canUnlock(progress)))return;
  busy=true;clearInput();closeDialog();if(world&&mode==='playing')persist();mode='chapter2';$('#menu').hidden=true;$('#hud').hidden=true;$('#webgl-canvas').style.visibility='hidden';forestAudio.update(false,{x:0,z:0});
  try{const {enterGarden}=await import('./garden.js');await enterGarden({settings,storage,audio:forestAudio,preview,qa:import.meta.env.DEV&&qaMode,onExit(){busy=false;$('#webgl-canvas').style.visibility='';showHome();}});busy=false;}catch(error){console.error(error);busy=false;$('#webgl-canvas').style.visibility='';showHome();toast('光之花園暫時無法載入，請稍後再試。');}
+}
+async function startBiome(chapter){
+ if(busy)return;busy=true;clearInput();closeDialog();if(world&&mode==='playing')persist();mode='biome';$('#menu').hidden=true;$('#hud').hidden=true;$('#webgl-canvas').style.visibility='hidden';forestAudio.update(false,{x:0,z:0});
+ try{const {enterBiome}=await import('./biome.js');await enterBiome({chapter,settings,qa:qaMode,onExit(){busy=false;$('#webgl-canvas').style.visibility='';showHome();}});busy=false;}catch(error){console.error(error);busy=false;$('#webgl-canvas').style.visibility='';showHome();toast('場景暫時無法載入，請稍後再試。');}
 }
 function closeDialog(){disposeBench?.();disposeBench=null;$('#dialog').classList.remove('fieldwork','pause-view','conversation');world?.present(mode==='menu');if($('#dialog').open)$('#dialog').close();clearInput();}
 function showHome(){mode='menu';clearInput();closeDialog();$('#menu').hidden=false;$('#hud').hidden=true;$('#cinematic').hidden=true;$('#loading').hidden=true;$('#home').hidden=false;$('#chapter-view').hidden=true;$('#webgl-canvas').classList.toggle('active',Boolean(world));world?.present(true);updateMenu();$('#journey').focus();}
@@ -143,7 +147,7 @@ window.addEventListener('blur',()=>{clearInput();if(mode==='playing'&&!$('#dialo
 document.addEventListener('visibilitychange',()=>{last=performance.now();if(document.hidden){clearInput();if(mode==='playing'&&!$('#dialog').open)pause();}});
 window.addEventListener('resize',()=>world?.resize());window.addEventListener('pagehide',()=>{if(world)persist();});
 canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();clearInput();toast('顯示卡連線中斷。進度已儲存，請重新整理頁面。');persist();mode='lost';});
-function tick(now){requestAnimationFrame(tick);const realDt=(now-last)/1000,dt=Math.min(realDt,.05);last=now;if(mode==='chapter2')return;if(document.hidden||!world||mode==='lost'){forestAudio.update(false,world?.player.position??{x:0,z:0});return;}
+function tick(now){requestAnimationFrame(tick);const realDt=(now-last)/1000,dt=Math.min(realDt,.05);last=now;if(mode==='chapter2'||mode==='biome')return;if(document.hidden||!world||mode==='lost'){forestAudio.update(false,world?.player.position??{x:0,z:0});return;}
   if(mode==='menu'&&now-menuFrame<33)return;menuFrame=now;
   time+=dt;const active=mode==='playing'&&!$('#dialog').open;forestAudio.update(active,world.player.position,progress.soils.length/3);const stage=stageOf(progress);
   if(import.meta.env.DEV&&qaMode&&$('#qa-position'))$('#qa-position').textContent=`位置 ${world.player.position.x.toFixed(2)},${world.player.position.z.toFixed(2)} · 速度 ${settings.speed}`;

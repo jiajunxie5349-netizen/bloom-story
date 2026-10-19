@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import {Terrain} from '../src/navigation.js';
 import {interactionDistance,nearestInteraction,interactionRange} from '../src/interaction.js';
 const dir=new URL('../public/models/',import.meta.url);
-const t=new Terrain(JSON.parse(fs.readFileSync(new URL('terrain_v12.json',dir))),JSON.parse(fs.readFileSync(new URL('collisions_v12.json',dir))));for(const p of peripheralLayout){const h=t.raw(p.x,p.z);if(h!=null&&h>=-2.4&&!t.blocked.has(t.index(p.x,p.z)))t.obstacles.push({x:p.x,z:p.z,radius:.42*p.scale});}t.connect(0,7.5);
+const t=new Terrain(JSON.parse(fs.readFileSync(new URL('terrain_v12.json',dir))),JSON.parse(fs.readFileSync(new URL('collisions_v14.json',dir))));for(const p of peripheralLayout){const h=t.raw(p.x,p.z);if(h!=null&&h>=-2.4&&!t.blocked.has(t.index(p.x,p.z)))t.obstacles.push({x:p.x,z:p.z,radius:.42*p.scale});}t.connect(0,7.5);
 let previous=t.height(0,30);
 for(let i=0;i<=1440;i++){
  const a=i/1440*Math.PI*2,x=Math.sin(a)*30,z=Math.cos(a)*30;
@@ -30,7 +30,7 @@ for(let i=0;i<=120;i++){const p=creek.getPoint(i/120);assert(t.raw(p.x,p.z)<p.y-
 console.log('PASS continuous creek bed under the water surface across the natural ford');
 
 for(let i=0;i<t.heights.length;i++){const [x,z]=t.coordinates(i);if(Math.hypot(x,z)<34.5)assert(t.heights[i]!=null,'unexpected hole in interior floor');}
-const collision=JSON.parse(fs.readFileSync(new URL('collisions_v12.json',dir)));assert(collision.source.includes('exact visible mesh BVH'));const oldBlocked=new Set(JSON.parse(fs.readFileSync(new URL('collisions_v10.json',dir))).blocked);const removed=[...oldBlocked].filter(i=>!t.blocked.has(i)&&t.safe.has(i));assert(removed.length>1000,'old invisible source footprints must become walkable');for(const i of removed){const [x,z]=t.coordinates(i);assert(t.canMove(x,z,t.height(x,z)));}
+const collision=JSON.parse(fs.readFileSync(new URL('collisions_v14.json',dir)));assert(collision.source.includes('exact visible mesh BVH'));const oldBlocked=new Set(JSON.parse(fs.readFileSync(new URL('collisions_v10.json',dir))).blocked);const removed=[...oldBlocked].filter(i=>!t.blocked.has(i)&&t.safe.has(i));assert(removed.length>1000,'old invisible source footprints must become walkable');for(const i of removed){const [x,z]=t.coordinates(i);assert(t.canMove(x,z,t.height(x,z)));}
 console.log('PASS continuous interior floor and collisions rebuilt only from current visible geometry');
 
 let dry=0;for(let i=0;i<t.heights.length;i++){const [x,z]=t.coordinates(i);if(t.canMove(x,z,t.height(x,z)))dry++;}assert(t.safe.size/dry>.99,'broad walkable land must not be partitioned by ghost walls');console.log('PASS over 99% of unobstructed dry ground belongs to the main connected walking area');

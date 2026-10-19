@@ -15,7 +15,7 @@ vec3 woodlandFloor(vec2 p,float heal){
 
 // Jitter every cell independently, then shuffle: low detail still covers the entire map.
 // Soft ground cover never contributes collision or camera blockers.
-export function floorScatter(terrain,seed=713,spacing=.21){
+export function floorScatter(terrain,seed=713,spacing=.18){
  const random=()=>((seed=seed*16807%2147483647)/2147483647),points=[];
  for(let x=-terrain.radius;x<terrain.radius;x+=spacing)for(let z=-terrain.radius;z<terrain.radius;z+=spacing){
   const px=x+random()*spacing,pz=z+random()*spacing;
