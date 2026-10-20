@@ -45,8 +45,9 @@ export function addForestDetails(scene,terrain,sites,chapter=1){
  const leaf=new THREE.BufferGeometry(),v=[0,0,0,-.16,.24,.13,-.24,.48,.07,-.10,.75,0,0,1.02,-.08,.14,.72,0,.25,.44,.07,.15,.20,.13,0,.42,.20],idx=[];
  for(let i=0;i<8;i++)idx.push(8,i,(i+1)%8);leaf.setAttribute('position',new THREE.Float32BufferAttribute(v,3));const front=[...v];for(let k=0;k<front.length;k+=3)v.push(front[k],front[k+1]-.022,front[k+2]);
  for(let j=0;j<8;j++){idx.push(17,9+(j+1)%8,9+j);const next=(j+1)%8;idx.push(j,j+9,next,next,j+9,next+9);}leaf.setAttribute('position',new THREE.Float32BufferAttribute(v,3));leaf.setIndex(idx);leaf.computeVertexNormals();
- const leaves=new THREE.InstancedMesh(leaf,jade,layout.plants.length*9),buds=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.12,1),ivory,layout.plants.length);let n=0;
- for(const [i,p] of layout.plants.entries()){
+ const visiblePlants=chapter===1?layout.plants.filter((_,i)=>i%3===0):layout.plants;
+ const leaves=new THREE.InstancedMesh(leaf,jade,visiblePlants.length*9),buds=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.12,1),ivory,visiblePlants.length);let n=0;
+ for(const [i,p] of visiblePlants.entries()){
   for(let j=0;j<9;j++){const angle=p.yaw+j*2.39996;dummy.position.set(p.x,p.y-.025,p.z);dummy.rotation.set(.38+(j%3)*.28,angle,Math.sin(j*3.7)*.18);dummy.scale.set(p.scale*(p.kind===1?.7:1),p.scale*(p.kind===2?1.2:.7),p.scale);dummy.updateMatrix();leaves.setMatrixAt(n++,dummy.matrix);}
   dummy.position.set(p.x,p.y+.09,p.z);dummy.rotation.set(0,p.yaw,0);dummy.scale.setScalar(p.scale);dummy.updateMatrix();buds.setMatrixAt(i,dummy.matrix);
  }

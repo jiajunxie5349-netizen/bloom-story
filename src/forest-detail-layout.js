@@ -6,7 +6,7 @@ export function touchesSolid(x,z,o,padding=.19){
 }
 export function forestDetailLayout(terrain,sites=[],chapter=1){
  let seed=chapter===1?93217:73143;const random=()=>{seed=seed*16807%2147483647;return seed/2147483647;};
- const height=(x,z)=>terrain.height(x,z),valid=(x,z)=>{const y=height(x,z);return y!=null&&y>-2.3&&Math.hypot(x,z)<33.5&&!terrain.blocked.has(terrain.index(x,z));};
+ const height=(x,z)=>terrain.height(x,z),valid=(x,z)=>{const y=height(x,z);return y!=null&&y>-2.3&&Math.hypot(x,z)<33.5&&!(terrain.plantingBlocked??terrain.blocked).has(terrain.index(x,z));};
  const clear=(x,z,r)=>sites.every(s=>Math.hypot(x-(s.x??s.position.x),z-(s.z??s.position.z))>r);
  const logs=[],plants=[];
  for(let i=0;i<600&&logs.length<11;i++){

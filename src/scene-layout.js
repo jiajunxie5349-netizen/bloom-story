@@ -1,3 +1,4 @@
+import {keepChapterOnePlant} from './chapter-one-density.js';
 // Data only: shared by the game and the removable local authoring tools.
 export function validateLayout(layout, manifest, terrain) {
   if (layout?.version !== 1 || layout.assetSHA256 !== manifest.assetSHA256 || !layout.objects || Array.isArray(layout.objects)) throw Error('場景版本與模型不相符');
@@ -15,7 +16,7 @@ export function applyLayout(root, layout) {
   const objects=new Map();root.traverse(o=>{if(o.userData.sceneId)objects.set(o.userData.sceneId,o);});
   for(const [id,t] of Object.entries(layout.objects)){
     const o=objects.get(id);if(!o)throw Error('模型缺少完整植株：'+id);
-    o.position.fromArray(t.position);o.rotation.set(0,t.yaw,0);o.scale.setScalar(t.scale);
+    o.visible=keepChapterOnePlant(id);if(!o.visible)o.traverse(child=>child.visible=false);o.position.fromArray(t.position);o.rotation.set(0,t.yaw,0);o.scale.setScalar(t.scale);
   }
   root.updateMatrixWorld(true);return objects;
 }
