@@ -19,7 +19,7 @@ export function addLivingWorld(scene,terrain,targets){
  const dummy=new THREE.Object3D();let k=0;
  for(let i=0;i<110;i++){
   const {a,x,z,scale}=peripheralLayout[i],y=terrain.raw(x,z);
-  if(y==null||y<-2.4||terrain.blocked.has(terrain.index(x,z)))continue;
+  if(y==null||y<-2.4||(terrain.plantingBlocked??terrain.blocked).has(terrain.index(x,z)))continue;
   dummy.position.set(x,y+.4*scale,z);dummy.rotation.set(0,a,0);dummy.scale.setScalar(scale);dummy.updateMatrix();stems.setMatrixAt(k,dummy.matrix);
   terrain.obstacles.push({x,z,radius:.42*scale});
   dummy.position.y=y+.8*scale;dummy.updateMatrix();caps.setMatrixAt(k,dummy.matrix);

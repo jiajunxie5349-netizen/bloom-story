@@ -1,6 +1,6 @@
 import {touchesSolid} from './forest-detail-layout.js';
 export class Terrain {
-  constructor(data, collisions={}) { Object.assign(this, data); this.blocked=new Set(collisions.blocked??[]);this.obstacles=[]; this.reachable = new Set(); }
+  constructor(data, collisions={}) { Object.assign(this, data); this.blocked=new Set(collisions.blocked??[]);this.plantingBlocked=new Set(collisions.plantingBlocked??collisions.blocked??[]);this.obstacles=[]; this.reachable = new Set(); }
   index(x,z) { const ix=Math.round((x-this.min)/this.step), iz=Math.round((z-this.min)/this.step); return ix>=0&&iz>=0&&ix<this.size&&iz<this.size ? iz*this.size+ix : -1; }
   coordinates(i) { return [this.min+(i%this.size)*this.step, this.min+Math.floor(i/this.size)*this.step]; }
   raw(x,z) { const i=this.index(x,z); return i<0 ? null : this.heights[i]; }
