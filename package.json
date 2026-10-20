@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node tests/core.test.mjs && node tests/exploration.test.mjs && node tests/garden.test.mjs && node tests/story.test.mjs && node tests/ecology.test.mjs && node tests/lesson-path.test.mjs && node tests/renewal.test.mjs && node tests/sculpture.test.mjs && node tests/authoring.test.mjs",
+    "test": "node tests/core.test.mjs && node tests/exploration.test.mjs && node tests/garden.test.mjs && node tests/story.test.mjs && node tests/ecology.test.mjs && node tests/lesson-path.test.mjs && node tests/renewal.test.mjs && node tests/sculpture.test.mjs && node tests/authoring.test.mjs && node tests/forest-details.test.mjs",
     "editor": "vite --host 127.0.0.1 --port 5194 --strictPort --open /editor.html"
   },
   "devDependencies": {

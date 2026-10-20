@@ -1,3 +1,5 @@
+import {forestDetailLayout} from '../src/forest-detail-layout.js';
+import {peripheralLayout} from '../src/living-world.js';
 // Only imported by Vite's local configuration. Never imported by the game.
 import {readFile,writeFile,mkdir,rename,copyFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
@@ -26,7 +28,7 @@ export function authoringPlugin(){
     const blend=process.env.BLOOM_SCENE_BLEND??resolve(root,'authoring/scene-source.blend');
     await new Promise((ok,fail)=>{let log='';const p=spawn(blender,['--background','--python',resolve(root,'authoring/bake_layout.py'),'--',blend,input,resolve(model,'terrain_v12.json'),output],{windowsHide:true});const timer=setTimeout(()=>{p.kill();fail(Error('碰撞重建逾時，原正式配置仍保留'));},120000);p.stdout.on('data',b=>{log=(log+b).slice(-2000);});p.stderr.on('data',b=>{log=(log+b).slice(-2000);});p.on('error',e=>{clearTimeout(timer);fail(Error('找不到本機 Blender 或場景來源：'+e.message));});p.on('close',code=>{clearTimeout(timer);code===0?ok():fail(Error('碰撞重建失敗，請確認場景來源檔可讀取'));});});
     const baked=JSON.parse(await readFile(output,'utf8'));baked.layoutSignature=layoutSignature(baked);if(!Array.isArray(baked.blocked)||!baked.blocked.every(i=>Number.isInteger(i)&&i>=0&&i<data.heights.length))throw Error('碰撞資料不完整');
-    const terrain=new Terrain(data,baked);if(!terrain.canMove(...mapLayout.spawn,terrain.height(...mapLayout.spawn)))throw Error('植株擋住玩家安全起點；原配置未變更');terrain.connect(...mapLayout.spawn);
+    const terrain=new Terrain(data,baked);terrain.obstacles.push(...forestDetailLayout(terrain,[...mapLayout.sites,{x:0,z:7.5},{x:-3,z:23},{x:5,z:10}]).solids);for(const p of peripheralLayout){if((terrain.raw(p.x,p.z)??-9)>=-2.4&&!terrain.blocked.has(terrain.index(p.x,p.z)))terrain.obstacles.push({x:p.x,z:p.z,radius:.42*p.scale});}if(!terrain.canMove(...mapLayout.spawn,terrain.height(...mapLayout.spawn)))throw Error('植株擋住玩家安全起點；原配置未變更');terrain.connect(...mapLayout.spawn);
     for(const site of mapLayout.sites){const path=terrain.pathTo(...mapLayout.spawn,site.x,site.z),last=path.at(-1);if(!last||Math.hypot(last[0]-site.x,last[2]-site.z)>1.7)throw Error('配置擋住任務通道：'+site.label);}
     let dry=0;for(let i=0;i<data.heights.length;i++){const [x,z]=terrain.coordinates(i);if(terrain.canMove(x,z,data.heights[i]))dry++;}
     if(terrain.safe.size/dry<.99)throw Error('植株切斷了森林通路；原正式配置未變更');
