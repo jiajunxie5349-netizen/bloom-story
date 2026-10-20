@@ -12,7 +12,8 @@ assert set(roots)==set(layout['objects']),'Plant identifiers do not match the so
 for key,t in layout['objects'].items():
  x,y,z=t['position'];o=roots[key];o.location=(x,-z,y);o.rotation_euler=(0,0,-t['yaw']);o.scale=(t['scale'],)*3
 bpy.context.view_layer.update();vs=[];fs=[]
-for root in roots.values():
+for key,root in roots.items():
+ if key in layout.get('excludedPlantIds',[]):continue
  for o in root.children_recursive:
   if o.type!='MESH':continue
   offset=len(vs);vs.extend(o.matrix_world@v.co for v in o.data.vertices);fs.extend(tuple(offset+i for i in p.vertices) for p in o.data.polygons)
