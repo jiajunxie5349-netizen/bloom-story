@@ -1,3 +1,4 @@
+import {addValley} from './valley-world.js';
 import {configureLakeWater,addSubmergedStones} from './natural-water.js';
 import {addForestDetails} from './forest-details.js';
 import {batchPlants} from './plant-batches.js';
@@ -29,7 +30,7 @@ import {addLivingWorld} from './living-world.js';
 export async function createWorld(canvas, settings, onStatus) {
   const base=import.meta.env.BASE_URL;const editing=import.meta.env.DEV&&settings.authoring===true;
   const scene=new THREE.Scene(); scene.background=new THREE.Color('#08191b');scene.fog=new THREE.FogExp2('#273c36',.027);
-  const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,150);
+  const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,settings.singleWorld?240:150);
   const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
   renderer.debug.onShaderError=(gl,program,vertex,fragment)=>{console.error('Forest shader:',gl.getProgramInfoLog(program),gl.getShaderInfoLog(vertex),gl.getShaderInfoLog(fragment));throw new Error('場景材質無法在此裝置編譯');};
   renderer.shadowMap.type=THREE.PCFShadowMap;renderer.info.autoReset=false;
@@ -50,7 +51,7 @@ export async function createWorld(canvas, settings, onStatus) {
     const [manifest,layout]=await Promise.all([readJSON('scene-manifest.json'),readJSON('scene-layout.json')]);
     const [f,g,res,collisionRes,v,fanSource]=await Promise.all([loader.loadAsync(base+'models/forest_ground_v8.glb'),loader.loadAsync(base+'models/sprite_guardian_v10.glb'),fetch(base+'models/terrain_v12.json'),Promise.resolve({ok:true,json:async()=>layout}),loader.loadAsync(base+'models/forest_vegetation_v18.glb'),loader.loadAsync(base+'models/original_fan_leaves_v11.glb')]);
     if(!res.ok||!collisionRes.ok)throw new Error('地形或碰撞資料載入失敗');
-    const terrain=new Terrain(await res.json(),await collisionRes.json());terrain.connect(...mapLayout.spawn);
+    let terrain=new Terrain(await res.json(),await collisionRes.json());terrain.connect(...mapLayout.spawn);
     if(terrain.reachable.size<100)throw new Error('可行走地形不足');
     validateLayout(layout,manifest,terrain);if(layout.layoutSignature!==layoutSignature(layout))throw Error("場景位置已改變，請用本機編輯器重建碰撞後儲存");const editableObjects=applyLayout(v.scene,layout);
     forest=f.scene;forest.add(v.scene); guardian=g.scene;
@@ -143,7 +144,7 @@ export async function createWorld(canvas, settings, onStatus) {
     const velocity=new THREE.Vector3(),move=new THREE.Vector3(),desiredCamera=new THREE.Vector3(),look=new THREE.Vector3();
     const cameraRay=new THREE.Raycaster();cameraRay.far=12;
     const collisionArt=[];details.root.traverse(o=>{if(o.isMesh&&!o.isInstancedMesh)collisionArt.push(o);});forest.traverse(o=>{if(o.isMesh&&o.visible&&!o.name.toLowerCase().startsWith('water'))collisionArt.push(o);});
-    collisionArt.push(...landmarks.collisionMeshes,...lotus.collisionMeshes,...canopy.collisionMeshes);scene.updateMatrixWorld(true);const cameraOcclusion=buildOcclusionIndex(collisionArt);let cameraCollisionTimer=0,occlusionDistance=12;
+    collisionArt.push(...landmarks.collisionMeshes,...lotus.collisionMeshes,...canopy.collisionMeshes);const valley=settings.singleWorld&&!editing?addValley(scene,terrain,targets):null;if(valley){terrain=valley.terrain;collisionArt.push(...valley.collisionMeshes);waterMeshes.push(...valley.waters);}scene.updateMatrixWorld(true);const cameraOcclusion=buildOcclusionIndex(collisionArt);let cameraCollisionTimer=0,occlusionDistance=12;
     function resize(){
       renderer.shadowMap.enabled=quality==='high';
       const max=quality==='high'?1.75:quality==='low'?1:1.5;
@@ -157,6 +158,7 @@ export async function createWorld(canvas, settings, onStatus) {
     function snapCamera(){look.copy(player.position).y+=1.2;camera.position.set(look.x+Math.sin(yaw)*distance,look.y+distance*Math.sin(pitch),look.z+Math.cos(yaw)*distance);camera.lookAt(look);}
     snapCamera();
     function update(dt,time,input,active,progress,stage,scan,reduced){
+      if(valley&&progress.singleValley)valley.update(dt,time,progress.singleValley,player.position,reduced,scan);
       if(active){
         if(!terrain.canMove(player.position.x,player.position.z,player.position.y)){const [sx,sz]=terrain.nearest(player.position.x,player.position.z);player.position.set(sx,terrainY(sx,sz),sz);velocity.set(0,0,0);}
         const x=Number(input.has('KeyD')||input.has('ArrowRight'))-Number(input.has('KeyA')||input.has('ArrowLeft')),z=Number(input.has('KeyS')||input.has('ArrowDown'))-Number(input.has('KeyW')||input.has('ArrowUp'));
@@ -183,7 +185,7 @@ export async function createWorld(canvas, settings, onStatus) {
       cameraCollisionTimer+=dt;
       if(cameraCollisionTimer>.125){cameraCollisionTimer=0;cameraRay.set(look,desiredCamera);const hit=cameraOcclusion.nearest(cameraRay.ray,1,distance);occlusionDistance=hit===null?12:Math.max(1.2,hit-.35);}
       desiredCamera.multiplyScalar(Math.min(distance,occlusionDistance)).add(look);
-      const outer=Math.hypot(desiredCamera.x,desiredCamera.z);if(outer>36){desiredCamera.x*=36/outer;desiredCamera.z*=36/outer;}
+      const outer=Math.hypot(desiredCamera.x,desiredCamera.z);if(!valley&&outer>36){desiredCamera.x*=36/outer;desiredCamera.z*=36/outer;}
       const floor=terrain.raw(desiredCamera.x,desiredCamera.z);if(floor!==null&&floor!==undefined)desiredCamera.y=Math.max(desiredCamera.y,floor+.35);
       camera.position.lerp(desiredCamera,1-Math.exp(-12*dt));camera.lookAt(look);
       }
@@ -212,10 +214,11 @@ export async function createWorld(canvas, settings, onStatus) {
         if(stage==='reflect'&&t===seed)t.group.visible=!(t.type==='isolate'&&t.index===1);
         if(t.type==='ritual'){t.crystal.position.y=.45+(reduced?0:Math.sin(time*1.8)*.045);if(!reduced)t.crystal.rotation.y=time*.25;}
       }
+      if(valley){const keep=new Set(valley.targets.filter(t=>t.anchor).map(t=>t.anchor));for(const t of targets){t.group.visible=keep.has(t);t.sign.visible=false;t.ring.visible=false;}if(progress.singleValley){const region=player.position.z<-35?'C':Math.hypot(player.position.x,player.position.z)>35?'B':'A';if(region!=='A'){const h=valley.states[region].value;ambient.intensity=1.15+h*.65;moon.intensity=1.55+h*.4;warm.intensity=.4+h*.5;scene.fog.density=.009;scene.fog.color.set('#6d8181');scene.background.copy(scene.fog.color);}else scene.fog.density=.027;}}
       if(!reduced){particles.rotation.y=time*.015;particles.position.y=Math.sin(time*.3)*.2;}
       for(let i=0;i<16;i++){const t=reduced?i:time,angle=i*2.4+t*.35;localDots[i*3]=Math.cos(angle)*(.45+i%3*.18);localDots[i*3+1]=.8+(i%5)*.23+Math.sin(t*.7+i)*.1;localDots[i*3+2]=Math.sin(angle)*.65;const bright=reduced?.65:.3+.7*(.5+.5*Math.sin(t*1.4+i*3));localColors.set([bright*.85,bright,bright*.45],i*3);}sparks.geometry.attributes.position.needsUpdate=true;sparks.geometry.attributes.color.needsUpdate=true;
       particles.visible=quality!=='low';
-      if(presentation==='pause'){camera.position.copy(player.position).add(new THREE.Vector3(3+(reduced?0:Math.sin(time*.06)*.3),2.6,4));camera.lookAt(player.position.clone().add(new THREE.Vector3(0,1.2,0)));}else if(presentation){camera.position.set(9+pointerX*1.3+(reduced?0:Math.sin(time*.04)*.25),4.5+pointerY*.7,21);camera.lookAt(0,1,-2);}
+      if(presentation==='overview'&&valley){scene.fog.density=.002;camera.position.set(102,110,100);camera.lookAt(17,0,-31);}else if(presentation==='pause'){camera.position.copy(player.position).add(new THREE.Vector3(3+(reduced?0:Math.sin(time*.06)*.3),2.6,4));camera.lookAt(player.position.clone().add(new THREE.Vector3(0,1.2,0)));}else if(presentation){camera.position.set(9+pointerX*1.3+(reduced?0:Math.sin(time*.04)*.25),4.5+pointerY*.7,21);camera.lookAt(0,1,-2);}
       renderer.info.reset();if(quality==='high')composer.render(dt);else renderer.render(scene,camera);
     }
     function activeTargets(stage,p){
@@ -223,7 +226,7 @@ export async function createWorld(canvas, settings, onStatus) {
       return targets.filter(t=>!(t.type==='isolate'&&t.index===1)&&(t.type===stage||(stage==='reflect'&&t.type==='ritual'))&&(t.type!=='soil'||t.index===p.soils.length)&&!(t.type==='survey'?p.scanned.includes(t.index):t.type==='isolate'?p.barriers.includes(t.index):false));
     }
     draco.dispose();onStatus('森林已準備好');
-    return {authoring:editing?{scene,camera,objects:editableObjects,layout,manifest}:undefined,renderer,player,terrain,targets,npcs,spawn,seed,resize,rotate,zoom,setQuality,teleport,update,activeTargets,touchWater,guideTo,
+    return {valley,authoring:editing?{scene,camera,objects:editableObjects,layout,manifest}:undefined,renderer,player,terrain,targets,npcs,spawn,seed,resize,rotate,zoom,setQuality,teleport,update,activeTargets,touchWater,guideTo,
       hint(target){hintTarget=target?targets.find(t=>t.type===target.type&&t.index===target.index):null;},
       present(enabled,x=0,y=0){presentation=enabled;pointerX=x;pointerY=y;},
       bearing(p){return Math.atan2(p.x-player.position.x,-(p.z-player.position.z))+yaw;},
