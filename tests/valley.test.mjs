@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import * as THREE from 'three';
 import {Terrain} from '../src/navigation.js';
 import {tasks,freshValley,loadValley,saveValley,finishTask,unlocked,completed,finale,sanitizeValley} from '../src/valley-data.js';
+import {createModelPreview} from '../src/model-preview.js';
 import {ValleyTerrain} from '../src/valley-terrain.js';
 import {addValley} from '../src/valley-world.js';
 import {mapLayout} from '../src/map-config.js';
@@ -35,3 +36,7 @@ for(const stage of [[],['A1','A2','A3'],['A1','A2','A3','B1','B2','B3'],p.done])
 }
 for(const child of scene.children)child.traverse(o=>{if(o.isMesh){const a=o.geometry.attributes.position.array;assert(a.every(Number.isFinite),'invalid mesh coordinates '+o.name);}});
 console.log('PASS single world: nine tasks, strict 3/3 gates, legacy migration, save round trip, A terrain unchanged, all task approaches reachable.',report);
+
+const previewBefore=createModelPreview(false),previewAfter=createModelPreview(true);assert.equal(previewBefore.done.length,0);assert.equal(previewAfter.done.length,9);assert(!unlocked(freshValley(),'B'));assert(!unlocked(freshValley(),'C'));assert(valley.terrain.allowed(43,-6,previewBefore));assert(valley.terrain.allowed(14,-66,previewBefore));assert(valley.terrain.allowed(0,-38,previewBefore));assert.equal(sanitizeValley(previewAfter).preview,undefined);valley.sync(previewBefore);assert.equal(valley.terrain.progress.preview,true);valley.sync(freshValley());assert(!valley.terrain.allowed(43,-6));assert(!valley.terrain.allowed(14,-66));assert.deepEqual(createModelPreview(false).done,[]);console.log('PASS model preview: independent before/after state, all regions accessible, formal gates restored on exit.');
+
+let previewWrites=0;assert.equal(saveValley({setItem(){previewWrites++;}},previewAfter),false);assert.equal(previewWrites,0,'preview must not write player storage');
